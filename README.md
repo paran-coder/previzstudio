@@ -1,57 +1,75 @@
-# Previz Studio v1.3.4
+# Previz Studio v1.3.5 — Recovery Baseline
 
-v1.3.4 is a **recovery release**. It returns the runtime to the stable v1.3.4 architecture, then reapplies only low-risk editing UX improvements.
+영화·광고 제작자와 AI 영상 크리에이터를 위한 웹 기반 3D 프리비즈 도구입니다.
 
-The priority is not adding features. The priority is restoring the behavior that already worked: **Edit View → Camera Preview → 30 FPS render** without black-screen regressions.
+## 이번 버전의 의미
+v1.3.5는 새 기능 버전이 아닙니다. 사용자가 직접 제공한 **정상 동작 v1.3.1 ZIP**으로 완전히 롤백한 뒤 다시 시작하기 위한 Recovery Baseline입니다.
 
-## What remains
-- 1920 × 1080 output
-- default 30 FPS
-- 20 s default sequence = 600 frames
-- 24 / 25 / 30 / 60 FPS project options
-- canonical 16:9 Camera Preview / PNG / MP4 pipeline
-- deterministic chase/fight scene parser
-- Camera manual position/target/lens editing
-- Actor transform editing
-- Three.js TransformControls
-- Camera/Actor selection from Scene Tree
-- World / Local transform space
-- collapsible prompt dock
+v1.3.2~v1.3.4에서 추가했던 상태 관리와 Camera Safety 기능은 포함하지 않습니다.
 
-## What was intentionally removed
-- v1.3.2 global Scene clone Undo/Redo
-- v1.3.3 per-frame Camera Safety and fallback-camera substitution
-- per-frame geometry obstacle scanning
+## 보존되는 v1.3.1 기능
+- 기본 **30 FPS**
+- 24 / 25 / 30 / 60 FPS 선택
+- 20초 @ 30 FPS = **600 frames**
+- Camera Preview / PNG / MP4/WebM Canonical 16:9 Frame
+- Camera 위치 / 높이 / 거리 / 타겟 직접 편집
+- Camera Transform Gizmo
+- Actor Transform Gizmo
+- Manual Camera Override
+- 2인 FIGHT 장면 파서
+- Chase sequence
+- Vite + hashed production assets
 
-Those systems increased state complexity inside the render path and are not part of this recovery release.
+## 이번 버전에서 넣지 않는 기능
+- Scene Tree 선택 동기화
+- World / Local
+- Prompt Dock 접기
+- Undo / Redo
+- Camera Safety / collision
+- fallback camera
+- Camera keyframes
+- 외부 AI 연결
 
-## Run
+## 실행
 
 ```bash
 npm install
 npm run dev
 ```
 
-Production build:
+Production:
 
 ```bash
 npm run build
+npm run preview
 ```
 
-## Recovery acceptance
-The release is accepted only when Production confirms:
+검증:
 
-1. Edit View loads normally.
-2. Camera Preview displays normally.
-3. Repeated Edit/Preview switching does not create a black viewport.
-4. Camera/Actor Gizmo editing does not break preview.
-5. 20 s / 30 FPS render produces 600 frames.
-6. Camera Preview and final MP4 retain the same framing.
+```bash
+npm test
+npm run check
+```
 
-## Automated verification
-- JavaScript syntax: PASS
-- Unit/contract tests: **35/35 PASS**
-- 30 FPS 20-second sequence: 600-frame evaluator PASS
-- Recovery contract: Undo/Redo and Camera Safety hot-path identifiers absent
+## 기본 출력
 
-Production browser switching/Gizmo/render remains the final acceptance step.
+```text
+1920 × 1080
+30 FPS
+20.0 sec
+600 frames
+```
+
+## Recovery 개발 원칙
+v1.3.5 Production이 정상임을 확인한 후 기능을 **한 번에 하나만** 추가합니다. 각 기능은 다음 단계 전에 Production에서 Preview/Render 회귀 검증을 통과해야 합니다.
+
+## Baseline 검증
+사용자 업로드 원본 v1.3.1에서 직접 확인:
+- Automated tests: **32/32 PASS**
+- JavaScript syntax check: **PASS**
+
+
+## v1.3.5 Local Verification
+- Automated tests: **34/34 PASS**
+- JavaScript syntax check: **PASS**
+- Runtime core hash lock: **PASS** — core renderer/app/sequence/exporter files are identical to the uploaded stable v1.3.1 baseline.
