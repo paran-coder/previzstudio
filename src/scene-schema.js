@@ -1,22 +1,34 @@
-export const SCENE_VERSION = '1.1.0';
+export const SCENE_VERSION = '1.2.0';
 
-export const CAMERA_MOVES = ['static', 'dolly_forward', 'dolly_through', 'tracking', 'orbit'];
-export const ENVIRONMENTS = ['warehouse', 'urban_alley', 'office', 'studio'];
-export const ACTOR_ACTIONS = ['stand_confrontation', 'stand', 'walk', 'run', 'look', 'exit_vehicle'];
+export const CAMERA_MOVES = [
+  'static', 'dolly_in', 'dolly_out', 'track_follow', 'track_between', 'orbit', 'handheld_follow'
+];
+export const ENVIRONMENTS = ['road', 'urban_alley', 'warehouse', 'corridor', 'office', 'studio'];
+export const ACTOR_ACTIONS = ['idle', 'walk', 'run', 'chase', 'turn', 'stop'];
+
+const vec3Schema = { type: 'array', minItems: 3, maxItems: 3, items: { type: 'number' } };
 
 export const SCENE_JSON_SCHEMA = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['version', 'sourcePrompt', 'scene', 'actors', 'props', 'lights', 'shots'],
+  type: 'object', additionalProperties: false,
+  required: ['version', 'sourcePrompt', 'sequence', 'scene', 'actors', 'props', 'lights', 'shots'],
   properties: {
     version: { type: 'string', enum: [SCENE_VERSION] },
     sourcePrompt: { type: 'string' },
+    sequence: {
+      type: 'object', additionalProperties: false,
+      required: ['duration', 'fps', 'width', 'height'],
+      properties: {
+        duration: { type: 'number', minimum: 1, maximum: 120 },
+        fps: { type: 'number', minimum: 1, maximum: 60 },
+        width: { type: 'integer', minimum: 320, maximum: 3840 },
+        height: { type: 'integer', minimum: 180, maximum: 2160 },
+      },
+    },
     scene: {
       type: 'object', additionalProperties: false,
       required: ['id', 'continuityKey', 'environment'],
       properties: {
-        id: { type: 'string' },
-        continuityKey: { type: 'string' },
+        id: { type: 'string' }, continuityKey: { type: 'string' },
         environment: {
           type: 'object', additionalProperties: false,
           required: ['type', 'time', 'weather', 'assetId'],
@@ -33,64 +45,67 @@ export const SCENE_JSON_SCHEMA = {
       type: 'array', minItems: 1, maxItems: 4,
       items: {
         type: 'object', additionalProperties: false,
-        required: ['id', 'role', 'assetId', 'position', 'rotationY', 'action'],
+        required: ['id', 'role', 'assetId', 'position', 'rotationY', 'actions'],
         properties: {
-          id: { type: 'string' }, role: { type: 'string' },
-          assetId: { type: 'string' },
-          position: { type: 'array', minItems: 3, maxItems: 3, items: { type: 'number' } },
-          rotationY: { type: 'number' },
-          action: { type: 'string', enum: ACTOR_ACTIONS },
-        },
-      },
-    },
-    props: {
-      type: 'array', maxItems: 12,
-      items: {
-        type: 'object', additionalProperties: false,
-        required: ['id', 'type', 'assetId', 'position', 'rotationY'],
-        properties: {
-          id: { type: 'string' }, type: { type: 'string' }, assetId: { type: 'string' },
-          position: { type: 'array', minItems: 3, maxItems: 3, items: { type: 'number' } },
-          rotationY: { type: 'number' },
-        },
-      },
-    },
-    lights: {
-      type: 'array', minItems: 1, maxItems: 8,
-      items: {
-        type: 'object', additionalProperties: false,
-        required: ['id', 'type', 'intensity', 'position'],
-        properties: {
-          id: { type: 'string' }, type: { type: 'string', enum: ['directional', 'point', 'ambient'] },
-          intensity: { type: 'number' },
-          position: { type: 'array', minItems: 3, maxItems: 3, items: { type: 'number' } },
-        },
-      },
-    },
-    shots: {
-      type: 'array', minItems: 1, maxItems: 8,
-      items: {
-        type: 'object', additionalProperties: false,
-        required: ['id', 'title', 'intent', 'duration', 'camera'],
-        properties: {
-          id: { type: 'string' }, title: { type: 'string' }, intent: { type: 'string' },
-          duration: { type: 'number', minimum: 1, maximum: 30 },
-          camera: {
-            type: 'object', additionalProperties: false,
-            required: ['movement', 'lens', 'distance', 'start', 'end', 'target'],
-            properties: {
-              movement: { type: 'string', enum: CAMERA_MOVES },
-              lens: { type: 'number', minimum: 18, maximum: 120 },
-              distance: { type: 'number', minimum: 0, maximum: 30 },
-              start: { type: 'array', minItems: 3, maxItems: 3, items: { type: 'number' } },
-              end: { type: 'array', minItems: 3, maxItems: 3, items: { type: 'number' } },
-              target: { type: 'array', minItems: 3, maxItems: 3, items: { type: 'number' } },
+          id: { type: 'string' }, role: { type: 'string' }, assetId: { type: 'string' },
+          position: vec3Schema, rotationY: { type: 'number' },
+          actions: {
+            type: 'array', minItems: 1, maxItems: 16,
+            items: {
+              type: 'object', additionalProperties: false,
+              required: ['type', 'start', 'end'],
+              properties: {
+                type: { type: 'string', enum: ACTOR_ACTIONS },
+                start: { type: 'number', minimum: 0 }, end: { type: 'number', minimum: 0 },
+                from: vec3Schema, to: vec3Schema,
+                rotationFrom: { type: 'number' }, rotationTo: { type: 'number' },
+                targetId: { type: 'string' },
+              },
             },
           },
         },
       },
     },
-  },
+    props: {
+      type: 'array', maxItems: 16,
+      items: {
+        type: 'object', additionalProperties: false,
+        required: ['id', 'type', 'assetId', 'position', 'rotationY'],
+        properties: { id:{type:'string'}, type:{type:'string'}, assetId:{type:'string'}, position:vec3Schema, rotationY:{type:'number'} },
+      },
+    },
+    lights: {
+      type: 'array', minItems: 1, maxItems: 12,
+      items: {
+        type: 'object', additionalProperties: false,
+        required: ['id', 'type', 'intensity', 'position'],
+        properties: {
+          id:{type:'string'}, type:{type:'string',enum:['directional','point','ambient']},
+          intensity:{type:'number'}, position:vec3Schema,
+        },
+      },
+    },
+    shots: {
+      type: 'array', minItems: 1, maxItems: 12,
+      items: {
+        type: 'object', additionalProperties: false,
+        required: ['id', 'title', 'intent', 'start', 'end', 'camera'],
+        properties: {
+          id:{type:'string'}, title:{type:'string'}, intent:{type:'string'},
+          start:{type:'number',minimum:0}, end:{type:'number',minimum:0},
+          camera: {
+            type:'object', additionalProperties:false,
+            required:['movement','lens','distance','start','end','target','handheldAmount'],
+            properties:{
+              movement:{type:'string',enum:CAMERA_MOVES}, lens:{type:'number',minimum:18,maximum:120},
+              distance:{type:'number',minimum:0,maximum:50}, start:vec3Schema, end:vec3Schema, target:vec3Schema,
+              targetActorId:{type:'string'}, secondaryActorId:{type:'string'}, handheldAmount:{type:'number',minimum:0,maximum:1},
+            }
+          }
+        }
+      }
+    }
+  }
 };
 
 export function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
@@ -100,13 +115,26 @@ export function validateSceneDocument(doc) {
   const errors = [];
   if (!doc || typeof doc !== 'object') errors.push('Scene Document가 객체가 아닙니다.');
   if (doc?.version !== SCENE_VERSION) errors.push(`Scene version은 ${SCENE_VERSION}이어야 합니다.`);
-  if (!doc?.scene?.environment?.type || !ENVIRONMENTS.includes(doc.scene.environment.type)) errors.push('지원하지 않는 환경입니다.');
+  if (!ENVIRONMENTS.includes(doc?.scene?.environment?.type)) errors.push('지원하지 않는 환경입니다.');
   if (!Array.isArray(doc?.actors) || doc.actors.length < 1) errors.push('배우가 최소 1명 필요합니다.');
   if (!Array.isArray(doc?.shots) || doc.shots.length < 1) errors.push('샷이 최소 1개 필요합니다.');
-  for (const [i, shot] of (doc?.shots || []).entries()) {
-    if (!CAMERA_MOVES.includes(shot?.camera?.movement)) errors.push(`샷 ${i + 1}: 지원하지 않는 카메라 이동입니다.`);
-    if (!(shot?.camera?.lens >= 18 && shot.camera.lens <= 120)) errors.push(`샷 ${i + 1}: 렌즈 범위가 잘못되었습니다.`);
-    if (!(shot?.duration >= 1 && shot.duration <= 30)) errors.push(`샷 ${i + 1}: 길이 범위가 잘못되었습니다.`);
+  const duration = Number(doc?.sequence?.duration || 0);
+  if (!(duration >= 1 && duration <= 120)) errors.push('시퀀스 길이가 올바르지 않습니다.');
+  if (doc?.sequence?.fps !== 24) errors.push('v1.2.0 기본 시퀀스 FPS는 24여야 합니다.');
+  for (const [i, actor] of (doc?.actors || []).entries()) {
+    for (const [j, action] of (actor.actions || []).entries()) {
+      if (!ACTOR_ACTIONS.includes(action?.type)) errors.push(`배우 ${i+1} 액션 ${j+1}: 지원하지 않는 동작입니다.`);
+      if (!(action?.start >= 0 && action?.end > action.start && action.end <= duration)) errors.push(`배우 ${i+1} 액션 ${j+1}: 시간 범위가 잘못되었습니다.`);
+    }
   }
+  let previousEnd = 0;
+  for (const [i, shot] of (doc?.shots || []).entries()) {
+    if (!CAMERA_MOVES.includes(shot?.camera?.movement)) errors.push(`샷 ${i+1}: 지원하지 않는 카메라 이동입니다.`);
+    if (!(shot?.camera?.lens >= 18 && shot.camera.lens <= 120)) errors.push(`샷 ${i+1}: 렌즈 범위가 잘못되었습니다.`);
+    if (!(shot?.start >= 0 && shot?.end > shot.start && shot.end <= duration + 1e-6)) errors.push(`샷 ${i+1}: 시간 범위가 잘못되었습니다.`);
+    if (i > 0 && Math.abs(shot.start - previousEnd) > 0.001) errors.push(`샷 ${i+1}: 이전 샷과 시간 연결이 끊겼습니다.`);
+    previousEnd = shot.end;
+  }
+  if ((doc?.shots || []).length && Math.abs(previousEnd - duration) > 0.001) errors.push('마지막 샷이 시퀀스 끝까지 이어지지 않습니다.');
   return { ok: errors.length === 0, errors };
 }

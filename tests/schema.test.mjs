@@ -3,17 +3,17 @@ import assert from 'node:assert/strict';
 import { directPromptFallback } from '../src/director-fallback.js';
 import { cloneSceneDocument, validateSceneDocument } from '../src/scene-schema.js';
 
-test('렌즈 범위를 벗어나면 validation이 실패한다', () => {
-  const doc = cloneSceneDocument(directPromptFallback('창고에서 두 사람이 대치한다.'));
-  doc.shots[0].camera.lens = 200;
-  const result = validateSceneDocument(doc);
-  assert.equal(result.ok, false);
-  assert.match(result.errors.join(' '), /렌즈/);
+test('렌즈 범위를 벗어나면 validation이 실패한다',()=>{
+  const doc=cloneSceneDocument(directPromptFallback('밤의 도로에서 한 사람이 달린다.'));
+  doc.shots[0].camera.lens=200;
+  const result=validateSceneDocument(doc);
+  assert.equal(result.ok,false);
+  assert.match(result.errors.join(' '),/렌즈/);
 });
 
-test('모든 멀티샷이 동일한 배우 ID를 참조할 수 있는 continuity 구조를 가진다', () => {
-  const doc = directPromptFallback('창고에서 두 사람이 대치한다.');
-  assert.ok(doc.scene.continuityKey);
-  assert.deepEqual(doc.actors.map(a => a.id), ['actor_01','actor_02']);
-  assert.ok(doc.shots.every(s => Array.isArray(s.camera.target)));
+test('샷들이 시퀀스 20초를 끊김 없이 채운다',()=>{
+  const doc=directPromptFallback('밤의 도로. 한 사람이 도망치고 다른 사람이 뒤따라 쫓아간다.');
+  assert.equal(doc.shots[0].start,0);
+  for(let i=1;i<doc.shots.length;i++)assert.equal(doc.shots[i].start,doc.shots[i-1].end);
+  assert.equal(doc.shots.at(-1).end,doc.sequence.duration);
 });

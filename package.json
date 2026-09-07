@@ -1,12 +1,12 @@
 {
   "name": "previz-studio",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "check": "node --check server.mjs && node --check src/app.js && node --check src/director-fallback.js && node --check src/renderer-canvas.js && node --check src/renderer-three.js",
+    "check": "node --check server.mjs && node --check src/app.js && node --check src/director-fallback.js && node --check src/scene-schema.js && node --check src/sequence.js && node --check src/renderer-canvas.js && node --check src/renderer-three.js && node --check src/video-exporter.js",
     "test": "node --test tests/*.test.mjs"
   },
-  "engines": { "node": ">=20" }
+  "engines": { "node": ">=22" }
 }

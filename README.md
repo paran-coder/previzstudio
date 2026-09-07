@@ -1,73 +1,87 @@
-# Previz Studio v1.1.0
+# Previz Studio v1.2.0
 
-영화·광고 제작자와 AI 영상 크리에이터를 위한 웹 기반 3D 프리비즈 프로토타입입니다.
+영화·광고 제작자와 AI 영상 크리에이터를 위한 웹 기반 3D 프리비즈 도구입니다.
 
-자연어 장면 설명을 **Scene Document → 멀티샷 연출 → 3D 프리비즈 → AI 영상 레퍼런스**로 변환합니다.
+v1.2.0의 중심은 자연어 해석이 아니라 **인물 동작 + 카메라 동작 + 20초 시퀀스 렌더링**입니다. 자연어는 엔진이 표현할 수 있는 환경·인물·행동·카메라 명령을 빠르게 추출하는 입력 보조 수단으로 사용합니다.
 
-## v1.1.0 핵심 기능
+## v1.2.0 목표
 
-- 실제 LLM AI Director 서버 경로
-  - OpenAI Responses API
-  - Structured Outputs JSON Schema
-  - API 키는 브라우저에 노출하지 않고 서버에서만 사용
-- API 키가 없거나 호출이 실패할 때 로컬 Director 자동 fallback
-- 멀티샷 자동 연출
-  - 기본 대치 장면: 공간 설정 → 인물 A → 인물 B → 대치 돌리
-- Three.js 렌더러 경로
-  - Three.js r185.1 고정
-  - `WebGPURenderer` 사용, 지원되지 않는 환경은 Three.js 내부 WebGL 2 fallback
-- GLB/glTF Asset Resolver
-  - `actor-neutral.glb`
-  - `sedan-blockout.glb`
-  - `warehouse-blockout.glb`
-- Three.js CDN 로드가 불가능한 환경에서는 Canvas 3D renderer fallback
-- 한국어 중심 UI
-- 샷별 렌즈 / 길이 / 이동거리 편집
-- Director View / Shot Camera View
-- 시작 / 중간 / 끝 PNG 레퍼런스
-- Scene JSON / AI Reference Manifest JSON 내보내기
-- 배우 ID 및 공간 continuity 유지
+공식 데모 문장:
+
+> 밤의 도로. 한 사람이 도망치고 다른 사람이 뒤따라 쫓아간다. 카메라는 역동적으로 두 사람 사이를 오가며 추격한다.
+
+이를 다음과 같은 실제 20초 프리비즈로 변환하는 것이 완료 조건입니다.
+
+- 0–4초: 24mm 와이드 공간 설정
+- 4–9초: 35mm 측면 트래킹
+- 9–14초: 50mm 추격자 핸드헬드 팔로우
+- 14–20초: 35mm 두 인물 사이 트래킹 + 러너 방향 푸시
+
+## 핵심 기능
+
+### 편집 뷰
+- 그리드
+- 배우 ID
+- 배우 동선
+- 카메라 경로
+- 샷 가이드
+- 마스터 타임라인
+
+### 렌더 뷰
+- 편집용 가이드 제거
+- 실제 Shot Camera 구도
+- 조명 / 재질 / 그림자 표시
+- AI 영상 생성용 레퍼런스 화면
+
+### 캐릭터 액션
+- Idle
+- Walk
+- Run
+- Chase
+- Turn
+- Stop
+
+### 카메라 모션
+- Static
+- Dolly In / Out
+- Track Follow
+- Track Between
+- Orbit
+- Handheld Follow
+
+### 출력
+기본 렌더 설정:
+- 1920×1080
+- 24 fps
+- 20초
+- MP4 우선, 브라우저 지원이 부족하면 WebM fallback
+
+추가 레퍼런스:
+- 샷별 시작 / 중간 / 끝 PNG
+- Scene JSON
+- Reference Manifest JSON
 
 ## 실행
 
-Node.js 20 이상이 필요합니다. 별도 npm 패키지 설치는 필요하지 않습니다.
-
 ```bash
-cd previz-studio-v1.1.0
 npm start
 ```
 
-브라우저에서 다음 주소를 엽니다.
+브라우저에서 `http://127.0.0.1:4173`을 엽니다.
 
-```text
-http://127.0.0.1:4173
-```
+## 제품 원칙
 
-## 실제 AI Director 연결
+Previz Studio는 Blender를 웹에서 복제하는 프로그램이 아닙니다. Blender 프리비즈가 주는 핵심 결과 — 공간 블로킹, 인물 동선, 카메라 구도, 렌즈 느낌, 움직임 — 을 훨씬 단순한 작업 흐름으로 만드는 것을 목표로 합니다.
 
-프로젝트 루트에서 환경 파일을 만듭니다.
+자연어는 완벽하게 이해할 필요가 없습니다. 엔진이 지원하는 명령으로 변환할 수 있는 부분만 최대한 반영하고 나머지는 안정적인 기본값을 사용합니다.
 
-```bash
-cp .env.example .env
-```
+## AI 영상 제작에서의 사용
 
-`.env`에 서버용 API 키를 설정합니다.
-
-```text
-OPENAI_API_KEY=...
-OPENAI_MODEL=gpt-6-astra
-PORT=4173
-```
-
-`.env` 파일은 정적 파일 서버에서 제공되지 않습니다.
-
-API 키가 없으면 UI는 자동으로 **로컬 대체 Director**를 사용하므로 기본 프리비즈 기능은 그대로 동작합니다.
-
-## 렌더러
-
-정상적인 네트워크 환경에서는 import map을 통해 Three.js r185.1을 로드합니다. `GLTFLoader`가 프로젝트 내부 GLB 파일을 읽어 실제 3D asset pipeline을 사용합니다.
-
-Three.js CDN이 로드되지 않는 환경에서는 dependency-free Canvas renderer로 자동 전환됩니다. 이 fallback은 UI와 샷 연출을 계속 검증하기 위한 것이며, production 경로는 Three.js입니다.
+1. 장면을 빠르게 블로킹합니다.
+2. 캐릭터 동작과 카메라를 20초 마스터 타임라인에서 확인합니다.
+3. 렌더 뷰에서 최종 프리비즈 구도를 확인합니다.
+4. 프리비즈 영상과 샷별 PNG를 출력합니다.
+5. 생성된 파일을 AI 영상 생성 프로그램의 reference image / reference video로 사용합니다.
 
 ## 테스트
 
@@ -76,60 +90,20 @@ npm run check
 npm test
 ```
 
-v1.1.0 검증 결과:
+v1.2.0 완료 시 20초 × 24fps = 480 프레임의 공식 추격 시퀀스를 브라우저에서 실제 렌더링하여 영상 파일 생성까지 검증합니다.
+
+## v1.2.0 검증 결과
 
 - JavaScript syntax check: PASS
-- Unit / contract tests: 6 PASS / 0 FAIL
+- Unit tests: 8 PASS / 0 FAIL
 - Browser smoke test: PASS
 - Browser page errors: 0
-- Default 4-shot generation: PASS
-- Shot selection/editing: PASS
-- Natural language fallback regeneration: PASS
-- GLB static delivery: PASS
-- `.env` static exposure block: PASS
+- 20초 마스터 재생 및 자동 샷 전환: PASS
+- 자연어 `밤의 복도 / 50mm / 달리기 / 따라가기` 재생성: PASS
+- 실제 영상 렌더: PASS
+  - H.264 MP4
+  - 1920×1080
+  - 약 19.99초
+  - 약 24fps
 
-실제 외부 OpenAI 호출은 개인 API 키가 필요한 관계로 포함된 contract test에서 request schema와 response parsing을 검증합니다.
-
-## 프로젝트 구조
-
-```text
-previz-studio-v1.1.0/
-├── context-notes.md
-├── checklist.md
-├── README.md
-├── User manual.md
-├── CHANGELOG.md
-├── .env.example
-├── package.json
-├── server.mjs
-├── index.html
-├── styles.css
-├── preview.png
-├── assets/
-│   └── models/
-│       ├── actor-neutral.glb
-│       ├── sedan-blockout.glb
-│       └── warehouse-blockout.glb
-├── src/
-│   ├── app.js
-│   ├── scene-schema.js
-│   ├── director-client.js
-│   ├── director-fallback.js
-│   ├── asset-catalog.js
-│   ├── renderer-three.js
-│   └── renderer-canvas.js
-└── tests/
-    ├── director.test.mjs
-    ├── schema.test.mjs
-    └── server.test.mjs
-```
-
-## 설계 원칙
-
-AI는 Three.js 코드를 생성하지 않습니다. AI Director는 제한된 Scene JSON만 생성하고 렌더러가 이를 결정론적으로 해석합니다. 이 구조가 continuity, 수정 가능성, export 안정성을 확보합니다.
-
-## 다음 버전 권장 순서
-
-**v1.2.0: 캐릭터 애니메이션 + 액션 시퀀싱**을 권장합니다.
-
-멀티샷 구조가 먼저 완성되었기 때문에 다음에는 `walk`, `turn`, `sit`, `open_door`, `exit_vehicle` 같은 animation clip을 Action Sequence로 연결하는 것이 가장 효과적입니다.
+브라우저에 WebCodecs가 있으면 MP4 고속 프레임 렌더 경로를 먼저 시도하고, 지원하지 않으면 MediaRecorder 실시간 렌더로 자동 전환합니다.

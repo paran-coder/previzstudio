@@ -1,178 +1,72 @@
-import { directPrompt } from './director-client.js';
 import { directPromptFallback } from './director-fallback.js';
 import { cloneSceneDocument, validateSceneDocument } from './scene-schema.js';
+import { activeShotAtTime, buildTimelineRows } from './sequence.js';
 import { CanvasSceneEngine } from './renderer-canvas.js';
+import { exportSequenceVideo } from './video-exporter.js';
 
-const $ = (q) => document.querySelector(q);
-const $$ = (q) => [...document.querySelectorAll(q)];
-const els = {
-  viewport: $('#viewport'), prompt: $('#prompt'), generate: $('#generate'), play: $('#play'), reset: $('#reset'),
-  timeline: $('#timeline'), timelineTime: $('#timeline-time'), progressReadout: $('#progress-readout'),
-  lens: $('#lens'), duration: $('#duration'), distance: $('#distance'), movementLabel: $('#movement-label'),
-  sceneTree: $('#scene-tree'), environmentLabel: $('#environment-label'), cameraLabel: $('#camera-label'),
-  shotStrip: $('#shot-strip'), shotCount: $('#shot-count'), shotIndexLabel: $('#shot-index-label'),
-  intentTitle: $('#intent-title'), intentCopy: $('#intent-copy'), shotIntent: $('#shot-intent'),
-  continuityLabel: $('#continuity-label'), directorMode: $('#director-mode'), rendererStatus: $('#renderer-status'),
-  showJson: $('#show-json'), exportJson: $('#export-json'), dialog: $('#json-dialog'), closeJson: $('#close-json'),
-  jsonOutput: $('#json-output'), toast: $('#toast')
+const $=q=>document.querySelector(q), $$=q=>[...document.querySelectorAll(q)];
+const els={
+  viewport:$('#viewport'),prompt:$('#prompt'),generate:$('#generate'),play:$('#play'),reset:$('#reset'),timeline:$('#timeline'),timelineTime:$('#timeline-time'),progressReadout:$('#progress-readout'),
+  sceneTree:$('#scene-tree'),continuity:$('#continuity-label'),environment:$('#environment-label'),camera:$('#camera-label'),renderer:$('#renderer-status'),tracks:$('#timeline-tracks'),
+  shotIndex:$('#shot-index-label'),intentTitle:$('#intent-title'),intentCopy:$('#intent-copy'),shotIntent:$('#shot-intent'),lens:$('#lens'),movement:$('#movement-label'),renderDuration:$('#render-duration'),
+  renderVideo:$('#render-video'),renderBar:$('#render-progress-bar'),renderText:$('#render-progress-text'),showJson:$('#show-json'),exportJson:$('#export-json'),dialog:$('#json-dialog'),closeJson:$('#close-json'),json:$('#json-output'),toast:$('#toast'),safeFrame:$('#safe-frame')
 };
 
-let sceneDoc = directPromptFallback(els.prompt.value);
-let shotIndex = 0;
-let engine;
-let toastTimer;
+const movementLabels={static:'고정',dolly_in:'돌리 인',dolly_out:'돌리 아웃',track_follow:'팔로우 트래킹',track_between:'사이 트래킹',orbit:'오비트',handheld_follow:'핸드헬드 팔로우'};
+const actionLabels={idle:'대기',walk:'걷기',run:'달리기',chase:'추격',turn:'회전',stop:'멈춤'};
+const envLabels={road:'도로',urban_alley:'도시 골목',warehouse:'창고',corridor:'복도',office:'사무실',studio:'스튜디오'};
+let sceneDoc=directPromptFallback(els.prompt.value), engine=null, currentShotIndex=0, toastTimer=0, rendering=false;
 
-const movementLabels = {
-  dolly_through: '돌리 통과', dolly_forward: '돌리 전진', tracking: '트래킹', orbit: '오비트', static: '고정'
-};
-const envLabels = { warehouse: '창고', urban_alley: '도시 골목', office: '사무실', studio: '스튜디오' };
-const timeLabels = { night: '밤', day: '낮' };
+function formatTime(sec){const s=Math.max(0,sec),m=Math.floor(s/60),whole=Math.floor(s%60),tenth=Math.floor((s-Math.floor(s))*10);return `${String(m).padStart(2,'0')}:${String(whole).padStart(2,'0')}.${tenth}`;}
+function showToast(msg,ms=2200){els.toast.textContent=msg;els.toast.classList.add('보임');clearTimeout(toastTimer);toastTimer=setTimeout(()=>els.toast.classList.remove('보임'),ms);}
+function downloadBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2500);}
 
-function formatTime(sec) {
-  const s = Math.max(0, sec); const whole = Math.floor(s); const tenth = Math.floor((s - whole) * 10);
-  return `00:${String(whole).padStart(2,'0')}.${tenth}`;
-}
-function showToast(msg) {
-  els.toast.textContent = msg; els.toast.classList.add('보임'); clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => els.toast.classList.remove('보임'), 1900);
-}
-function downloadBlob(blob, name) {
-  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name; a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 800);
+async function initEngine(){
+  try{const {createThreeSceneEngine}=await import('./renderer-three.js');const e=await createThreeSceneEngine(els.viewport);els.renderer.textContent=e.rendererLabel;els.renderer.classList.add('온라인');return e;}
+  catch(error){console.info('[Previz] Three.js를 사용할 수 없어 Canvas 렌더러로 전환합니다.',error?.message||error);const e=new CanvasSceneEngine(els.viewport);els.renderer.textContent=e.rendererLabel;els.renderer.classList.add('대체');return e;}
 }
 
-async function initEngine() {
-  try {
-    const { createThreeSceneEngine } = await import('./renderer-three.js');
-    const next = await createThreeSceneEngine(els.viewport);
-    els.rendererStatus.textContent = next.rendererLabel;
-    els.rendererStatus.classList.add('온라인');
-    return next;
-  } catch (error) {
-    const next = new CanvasSceneEngine(els.viewport);
-    els.rendererStatus.textContent = 'Canvas 대체 렌더러';
-    els.rendererStatus.classList.add('대체');
-    console.info('[Previz] Three.js 로드 실패, Canvas fallback 사용:', error?.message || error);
-    return next;
-  }
+function shotIndexAtTime(time){const shot=activeShotAtTime(sceneDoc,time);return Math.max(0,sceneDoc.shots.findIndex(s=>s.id===shot.id));}
+function renderSceneTree(){
+  const env=sceneDoc.scene.environment;
+  const actors=sceneDoc.actors.map((a,i)=>`<div class="트리아이템"><span class="트리아이콘">${i+1}</span><span><b>${a.id.toUpperCase()}</b><small>${a.actions.map(x=>actionLabels[x.type]||x.type).join(' → ')}</small></span></div>`).join('');
+  const shots=sceneDoc.shots.map((s,i)=>`<button class="트리아이템" data-jump-shot="${i}"><span class="트리아이콘">⌁</span><span>${String(i+1).padStart(2,'0')} · ${s.title}</span></button>`).join('');
+  els.sceneTree.innerHTML=`<div class="트리그룹"><div class="트리제목">환경</div><div class="트리아이템"><span class="트리아이콘">◇</span><span>${envLabels[env.type]||env.type} · ${env.time==='night'?'밤':'낮'}</span></div></div><div class="트리그룹"><div class="트리제목">배우</div>${actors}</div><div class="트리그룹"><div class="트리제목">카메라 / 샷</div>${shots}</div>`;
+  $$('[data-jump-shot]').forEach(b=>b.addEventListener('click',()=>engine.selectShot(Number(b.dataset.jumpShot))));
 }
 
-function renderTree() {
-  const env = sceneDoc.scene.environment;
-  const actors = sceneDoc.actors.map((a, i) => `<button class="트리아이템"><span class="트리아이콘">${i+1}</span><span>${a.id.toUpperCase()}</span></button>`).join('');
-  const props = sceneDoc.props.length ? sceneDoc.props.map((p) => `<button class="트리아이템"><span class="트리아이콘">◇</span><span>${p.id.toUpperCase()}</span></button>`).join('') : `<div class="트리아이템"><span class="트리아이콘">–</span><span>없음</span></div>`;
-  const cameras = sceneDoc.shots.map((s, i) => `<button class="트리아이템"><span class="트리아이콘">⌁</span><span>샷 카메라 ${String(i+1).padStart(2,'0')}</span></button>`).join('');
-  els.sceneTree.innerHTML = `
-    <div class="트리그룹"><div class="트리제목">환경</div><button class="트리아이템"><span class="트리아이콘">◇</span><span>${envLabels[env.type] || env.type}</span></button></div>
-    <div class="트리그룹"><div class="트리제목">배우</div>${actors}</div>
-    <div class="트리그룹"><div class="트리제목">소품</div>${props}</div>
-    <div class="트리그룹"><div class="트리제목">카메라</div>${cameras}</div>
-    <div class="트리그룹"><div class="트리제목">조명</div><button class="트리아이템"><span class="트리아이콘">✦</span><span>시네마틱 라이트 리그</span></button></div>`;
+function renderTracks(){
+  const rows=buildTimelineRows(sceneDoc),d=sceneDoc.sequence.duration;
+  const clip=(item,extra='')=>{const left=item.start/d*100,width=(item.end-item.start)/d*100;return `<button class="타임클립 ${extra}" data-jump="${item.start}" style="left:${left}%;width:${width}%"><span>${item.label}</span></button>`};
+  const actorRows=rows.actors.map((row,i)=>`<div class="트랙행"><div class="트랙라벨">배우 ${i+1}</div><div class="트랙레인">${row.clips.map(x=>clip(x,`액션 ${x.type}`)).join('')}</div></div>`).join('');
+  els.tracks.innerHTML=`<div class="트랙행"><div class="트랙라벨">샷</div><div class="트랙레인">${rows.shots.map((x,i)=>clip(x,`샷클립 shot-${i}`)).join('')}</div></div>${actorRows}<div class="트랙행"><div class="트랙라벨">카메라</div><div class="트랙레인">${rows.camera.map(x=>clip(x,'카메라클립')).join('')}</div></div>`;
+  $$('[data-jump]').forEach(b=>b.addEventListener('click',()=>engine.seek(Number(b.dataset.jump)+.001)));
 }
 
-function renderShots() {
-  els.shotCount.textContent = `${sceneDoc.shots.length}개 샷`;
-  els.shotStrip.innerHTML = sceneDoc.shots.map((shot, i) => `
-    <button class="샷카드 ${i===shotIndex?'선택':''}" data-shot="${i}">
-      <span class="샷번호">샷 ${String(i+1).padStart(2,'0')}</span>
-      <strong>${shot.title}</strong>
-      <span class="샷메타">${shot.duration.toFixed(1)}초 · ${shot.camera.lens}mm · ${movementLabels[shot.camera.movement]}</span>
-    </button>`).join('');
-  $$('[data-shot]').forEach((button) => button.addEventListener('click', () => selectShot(Number(button.dataset.shot))));
+function syncShotUI(time=engine?.time||0){
+  currentShotIndex=shotIndexAtTime(time);const shot=sceneDoc.shots[currentShotIndex],env=sceneDoc.scene.environment;
+  els.shotIndex.textContent=`샷 ${String(currentShotIndex+1).padStart(2,'0')}`;els.intentTitle.textContent=shot.title;els.intentCopy.textContent=shot.intent;els.shotIntent.textContent=shot.intent;
+  els.lens.value=shot.camera.lens;els.movement.textContent=movementLabels[shot.camera.movement]||shot.camera.movement;els.environment.textContent=`${envLabels[env.type]||env.type} · ${env.time==='night'?'밤':'낮'}`;els.camera.textContent=`${shot.camera.lens}mm · ${movementLabels[shot.camera.movement]||shot.camera.movement}`;
+  $$('.샷클립').forEach((el,i)=>el.classList.toggle('활성',i===currentShotIndex));
 }
+function updateTimeUI(time=0,playing=false){const d=sceneDoc.sequence.duration;els.timeline.max=String(d);els.timeline.value=String(time);els.timelineTime.textContent=formatTime(time);els.progressReadout.textContent=`${formatTime(time)} / ${formatTime(d)}`;els.play.textContent=playing?'Ⅱ':'▶';syncShotUI(time);}
 
-function syncUI() {
-  const shot = sceneDoc.shots[shotIndex]; const env = sceneDoc.scene.environment;
-  els.lens.value = shot.camera.lens; els.duration.value = shot.duration; els.distance.value = shot.camera.distance;
-  els.movementLabel.textContent = movementLabels[shot.camera.movement] || shot.camera.movement;
-  els.environmentLabel.textContent = `${envLabels[env.type] || env.type} · ${timeLabels[env.time] || env.time}`;
-  els.cameraLabel.textContent = `${shot.camera.lens}mm · ${movementLabels[shot.camera.movement]}`;
-  els.shotIndexLabel.textContent = `샷 ${String(shotIndex+1).padStart(2,'0')}`;
-  els.intentTitle.textContent = shot.title; els.intentCopy.textContent = shot.intent; els.shotIntent.textContent = shot.intent;
-  els.continuityLabel.textContent = sceneDoc.scene.continuityKey;
-  els.jsonOutput.textContent = JSON.stringify(sceneDoc, null, 2);
-  renderTree(); renderShots(); updateProgressUI(engine?.progress || 0, engine?.playing || false);
-}
+async function loadScene(doc){const check=validateSceneDocument(doc);if(!check.ok){showToast(check.errors[0]);throw new Error(check.errors.join(' '));}sceneDoc=doc;await engine.loadDocument(sceneDoc);engine.onTime=(time,playing)=>updateTimeUI(time,playing);els.continuity.textContent=sceneDoc.scene.continuityKey;els.renderDuration.textContent=`${sceneDoc.sequence.duration.toFixed(1)}초`;els.json.textContent=JSON.stringify(sceneDoc,null,2);renderSceneTree();renderTracks();updateTimeUI(0,false);}
 
-function updateProgressUI(progress, playing = false) {
-  if (!sceneDoc.shots[shotIndex]) return;
-  const duration = sceneDoc.shots[shotIndex].duration;
-  els.timeline.value = String(progress); els.timelineTime.textContent = formatTime(duration * progress);
-  els.progressReadout.textContent = `${formatTime(duration * progress)} / ${formatTime(duration)}`;
-  els.play.textContent = playing ? 'Ⅱ' : '▶';
-}
+function selectedShot(){return sceneDoc.shots[currentShotIndex];}
+function referenceManifest(){return {format:'previz-reference-pack',version:'1.2.0',sourcePrompt:sceneDoc.sourcePrompt,sequence:sceneDoc.sequence,continuityKey:sceneDoc.scene.continuityKey,environment:sceneDoc.scene.environment,actors:sceneDoc.actors.map(a=>({id:a.id,role:a.role,actions:a.actions})),shots:sceneDoc.shots.map((s,i)=>({id:s.id,title:s.title,start:s.start,end:s.end,lens:s.camera.lens,movement:s.camera.movement,referenceFrames:[['start',s.start],['mid',(s.start+s.end)/2],['end',Math.max(s.start,s.end-1/sceneDoc.sequence.fps)]].map(([role,time])=>({role,time,suggestedFilename:`previz-shot${String(i+1).padStart(2,'0')}-${role}.png`}))})),referenceIntent:'카메라 구도, 인물 동선, 움직임과 샷 연속성을 AI 영상 생성에 전달한다.'};}
+async function captureRole(role){const shot=selectedShot(),t=role==='start'?shot.start:role==='mid'?(shot.start+shot.end)/2:Math.max(shot.start,shot.end-1/sceneDoc.sequence.fps);const blob=await engine.captureAtTime(t);if(!blob)return showToast('프레임 캡처 실패');downloadBlob(blob,`previz-shot${String(currentShotIndex+1).padStart(2,'0')}-${role}.png`);showToast(`${role} PNG를 저장했습니다.`);}
 
-async function loadScene(next, mode = 'fallback', model = '') {
-  const check = validateSceneDocument(next);
-  if (!check.ok) { showToast(check.errors[0]); return; }
-  sceneDoc = next; shotIndex = 0;
-  await engine.loadDocument(sceneDoc);
-  engine.onProgress = updateProgressUI;
-  els.directorMode.textContent = mode === 'llm' ? `AI 연출: ${model || 'LLM'}` : 'AI 연출: 로컬 대체';
-  els.directorMode.classList.toggle('온라인', mode === 'llm');
-  els.directorMode.classList.toggle('대체', mode !== 'llm');
-  syncUI();
-}
+els.generate.addEventListener('click',async()=>{if(rendering)return;const prompt=els.prompt.value.trim();if(!prompt)return;els.generate.disabled=true;els.generate.querySelector('span').textContent='블로킹 중…';try{await loadScene(directPromptFallback(prompt));showToast('표현 가능한 동작과 카메라를 프리비즈로 만들었습니다.');}finally{els.generate.disabled=false;els.generate.querySelector('span').textContent='장면 만들기';}});
+els.prompt.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='Enter')els.generate.click();});
+els.play.addEventListener('click',()=>{if(engine.time>=sceneDoc.sequence.duration-.001)engine.seek(0);engine.setPlaying(!engine.playing);updateTimeUI(engine.time,engine.playing);});
+els.reset.addEventListener('click',()=>engine.reset());
+els.timeline.addEventListener('input',()=>engine.seek(Number(els.timeline.value)));
+$$('[data-view]').forEach(button=>button.addEventListener('click',()=>{$$('[data-view]').forEach(b=>b.classList.toggle('활성',b===button));engine.setViewMode(button.dataset.view);els.safeFrame.classList.toggle('렌더',button.dataset.view==='render');}));
+els.lens.addEventListener('change',()=>{const next=cloneSceneDocument(sceneDoc),v=Math.max(18,Math.min(120,Number(els.lens.value)||35));next.shots[currentShotIndex].camera.lens=v;sceneDoc=next;engine.document=sceneDoc;engine.applyTime(engine.time);syncShotUI(engine.time);});
+$('#ref-start').addEventListener('click',()=>captureRole('start'));$('#ref-mid').addEventListener('click',()=>captureRole('mid'));$('#ref-end').addEventListener('click',()=>captureRole('end'));$('#ref-manifest').addEventListener('click',()=>downloadBlob(new Blob([JSON.stringify(referenceManifest(),null,2)],{type:'application/json'}),'previz-reference-pack-v1.2.0.json'));
+els.showJson.addEventListener('click',()=>{els.json.textContent=JSON.stringify(sceneDoc,null,2);els.dialog.showModal();});els.closeJson.addEventListener('click',()=>els.dialog.close());els.dialog.addEventListener('click',e=>{if(e.target===els.dialog)els.dialog.close();});els.exportJson.addEventListener('click',()=>downloadBlob(new Blob([JSON.stringify(sceneDoc,null,2)],{type:'application/json'}),'previz-scene-v1.2.0.json'));
 
-function selectShot(index) {
-  if (!sceneDoc.shots[index]) return;
-  shotIndex = index; engine.selectShot(index); syncUI();
-}
+els.renderVideo.addEventListener('click',async()=>{if(rendering)return;rendering=true;els.renderVideo.disabled=true;engine.setPlaying(false);const priorView=engine.viewMode;engine.setViewMode('render');els.renderBar.style.width='0%';els.renderText.textContent='렌더 준비 중…';try{const result=await exportSequenceVideo(engine,sceneDoc,(p,label)=>{els.renderBar.style.width=`${Math.round(p*100)}%`;els.renderText.textContent=`${label} · ${Math.round(p*100)}%`;});const ext=result.format==='mp4'?'mp4':'webm';downloadBlob(result.blob,`previz-road-chase-20s-v1.2.0.${ext}`);els.renderText.textContent=`완료 · ${ext.toUpperCase()} · ${(result.blob.size/1024/1024).toFixed(1)} MB`;showToast(result.format==='mp4'?'20초 MP4 프리비즈를 저장했습니다.':'MP4 인코더가 없어 WebM으로 저장했습니다.',3500);}catch(error){console.error(error);els.renderText.textContent=`렌더 실패 · ${error.message||error}`;showToast('영상 렌더에 실패했습니다.',3000);}finally{engine.setViewMode(priorView);rendering=false;els.renderVideo.disabled=false;}});
 
-function updateShotFromInspector() {
-  const next = cloneSceneDocument(sceneDoc); const shot = next.shots[shotIndex];
-  shot.camera.lens = Math.max(18, Math.min(120, Number(els.lens.value) || 35));
-  shot.duration = Math.max(1, Math.min(30, Number(els.duration.value) || 4));
-  shot.camera.distance = Math.max(0, Math.min(30, Number(els.distance.value) || 0));
-  if (shot.camera.movement === 'dolly_through') {
-    const d = Math.max(2, shot.camera.distance); shot.camera.start = [0,1.7,d/2]; shot.camera.end = [0,1.7,-d/2];
-  } else if (shot.camera.movement === 'dolly_forward') {
-    const d = Math.max(1, shot.camera.distance); shot.camera.end = [...shot.camera.start]; shot.camera.end[2] -= d;
-  }
-  sceneDoc = next; engine.updateShot(sceneDoc.shots[shotIndex]); syncUI();
-}
-
-function buildManifest() {
-  return {
-    format: 'previz-reference-pack', version: '1.1.0', sourcePrompt: sceneDoc.sourcePrompt,
-    continuityKey: sceneDoc.scene.continuityKey, environment: sceneDoc.scene.environment,
-    actors: sceneDoc.actors.map(({id,role,assetId,position,action}) => ({id,role,assetId,position,action})),
-    shots: sceneDoc.shots.map((shot, i) => ({
-      id: shot.id, title: shot.title, intent: shot.intent, duration: shot.duration,
-      lens: shot.camera.lens, movement: shot.camera.movement, cameraStart: shot.camera.start,
-      cameraEnd: shot.camera.end, target: shot.camera.target,
-      referenceFrames: ['start','mid','end'].map((role, j) => ({ role, progress: [0,.5,1][j], suggestedFilename: `previz-shot${String(i+1).padStart(2,'0')}-${role}.png` }))
-    })),
-    aiVideoReference: { continuityInstruction: '모든 샷에서 배우 정체성, 의상, 공간 배치, 시간대와 조명 연속성을 유지한다.' }
-  };
-}
-
-async function capture(progress, role) {
-  const blob = await engine.capture(progress); if (!blob) return showToast('프레임 캡처에 실패했습니다.');
-  downloadBlob(blob, `previz-shot${String(shotIndex+1).padStart(2,'0')}-${role}.png`); showToast(`${role} 프레임을 저장했습니다.`);
-}
-
-els.generate.addEventListener('click', async () => {
-  const prompt = els.prompt.value.trim(); if (!prompt) return;
-  els.generate.disabled = true; els.generate.querySelector('span').textContent = '연출 중…';
-  const result = await directPrompt(prompt);
-  await loadScene(result.scene, result.mode, result.model);
-  showToast(result.mode === 'llm' ? 'AI Director가 멀티샷 장면을 생성했습니다.' : '로컬 Director로 장면을 생성했습니다.');
-  els.generate.disabled = false; els.generate.querySelector('span').textContent = '장면 생성';
-});
-els.prompt.addEventListener('keydown', (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') els.generate.click(); });
-els.play.addEventListener('click', () => { if (engine.progress >= 1) engine.applyProgress(0); engine.setPlaying(!engine.playing); updateProgressUI(engine.progress, engine.playing); });
-els.reset.addEventListener('click', () => engine.reset());
-els.timeline.addEventListener('input', () => { engine.setPlaying(false); engine.applyProgress(Number(els.timeline.value)); updateProgressUI(engine.progress, false); });
-for (const el of [els.lens, els.duration, els.distance]) el.addEventListener('change', updateShotFromInspector);
-$$('[data-view]').forEach((button) => button.addEventListener('click', () => { $$('[data-view]').forEach((b) => b.classList.toggle('활성', b===button)); engine.setViewMode(button.dataset.view); }));
-$('#ref-start').addEventListener('click', () => capture(0, 'start')); $('#ref-mid').addEventListener('click', () => capture(.5, 'mid')); $('#ref-end').addEventListener('click', () => capture(1, 'end'));
-$('#ref-manifest').addEventListener('click', () => downloadBlob(new Blob([JSON.stringify(buildManifest(), null, 2)], {type:'application/json'}), 'previz-reference-pack-v1.1.0.json'));
-els.showJson.addEventListener('click', () => { els.jsonOutput.textContent = JSON.stringify(sceneDoc, null, 2); els.dialog.showModal(); });
-els.closeJson.addEventListener('click', () => els.dialog.close());
-els.dialog.addEventListener('click', (e) => { if (e.target === els.dialog) els.dialog.close(); });
-els.exportJson.addEventListener('click', () => { downloadBlob(new Blob([JSON.stringify(sceneDoc, null, 2)], {type:'application/json'}), 'previz-scene-v1.1.0.json'); showToast('씬 JSON을 저장했습니다.'); });
-
-engine = await initEngine();
-await loadScene(sceneDoc, 'fallback');
-showToast('Previz Studio v1.1.0 준비 완료');
+engine=await initEngine();await loadScene(sceneDoc);window.__PREVIZ__={getScene:()=>sceneDoc,getEngine:()=>engine,loadPrompt:async p=>{els.prompt.value=p;await loadScene(directPromptFallback(p));},exportSequenceVideo:()=>exportSequenceVideo(engine,sceneDoc)};showToast('Previz Studio v1.2.0 · 20초 추격 시퀀스 준비 완료');
