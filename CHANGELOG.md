@@ -1,28 +1,32 @@
 # Changelog
 
+## v1.3.2 — Camera Editing UX
+
+- Camera/Actor 선택 상태를 Scene Tree / Viewport / Inspector에서 통일
+- Inspector 최상단에 선택 오브젝트 hierarchy 추가
+- Camera/Actor contextual Transform Inspector
+- Transform mode: 이동 / 회전 / 타겟
+- World / Local Transform space 추가
+- Camera Target mode에서 Local space 비활성화 및 World 고정
+- Camera/Actor Transform Undo / Redo 스택 추가
+- Gizmo drag를 하나의 Undo transaction으로 기록
+- `Cmd/Ctrl+Z`, `Cmd/Ctrl+Shift+Z` 단축키 추가
+- Prompt Dock 접기/펼치기 추가
+- 접힌 상태에서도 한 줄 Prompt command bar와 장면 생성 유지
+- Scene Tree selected/current-shot hierarchy 보정
+- Viewport selection HUD 추가
+- Timeline/Inspector typography 소폭 보정
+- v1.3.1 30 FPS / 600 frame / Canonical Preview=Render 구조 회귀 유지
+
 ## v1.3.1
 
-### Frame Rate
-- 기본 프로젝트 FPS를 24에서 **30 FPS**로 변경
-- 24 / 25 / 30 / 60 FPS 선택 기능 추가
-- 20초 기본 시퀀스는 30 FPS에서 600프레임
-- FPS 변경 시 Shot 시간은 초 단위로 유지하고 frame count만 재계산
-- 장면을 다시 생성해도 사용자가 선택한 프로젝트 FPS 유지
+- 기본 FPS 30
+- 24 / 25 / 30 / 60 FPS 선택
+- 20초 30 FPS = 600 frames
 
-### Output
-- Timeline step이 선택 FPS의 `1/fps`로 변경
-- Preview / Camera / Actor / PNG / MP4/WebM이 동일한 Scene Document FPS 공유
-- PNG end reference가 선택 FPS 기준 마지막 유효 프레임 사용
-- MediaRecorder `captureStream()`과 MP4 encoder frameRate가 선택 FPS 사용
+## v1.3.0
 
-### Regression
-- v1.3.0 Camera/Actor Transform Gizmo 유지
-- Manual Camera Override 유지
-- Canonical 16:9 Preview/Render 파이프라인 유지
-- fight prompt / chase sequence 회귀 없음
-
-### Verification
-- JavaScript syntax check: PASS
-- Automated tests: **32/32 PASS**
-- 20 sec @ 30 FPS: **600 evaluated frames PASS**
-- FPS frame-count contract 24/25/30/60: PASS
+- Camera/Actor Transform Gizmo
+- Camera position / height / distance / target editing
+- manual camera override
+- fight prompt / FIGHT action / multi-shot directing

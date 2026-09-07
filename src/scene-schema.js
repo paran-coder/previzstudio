@@ -1,4 +1,4 @@
-export const SCENE_VERSION = '1.3.1';
+export const SCENE_VERSION = '1.3.2';
 export const SUPPORTED_FPS = [24, 25, 30, 60];
 
 export const CAMERA_MOVES = [

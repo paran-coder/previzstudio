@@ -33,16 +33,59 @@
 @media(max-width:1180px){.작업공간{grid-template-columns:200px minmax(500px,1fr) 280px}.프롬프트독{grid-template-columns:210px 1fr 130px}}
 @media(max-width:930px){html,body{overflow:auto}.앱{height:auto;min-height:100vh;display:block}.상단바{min-height:64px;position:sticky;top:0;z-index:20}.작업공간{display:block;padding:8px}.씬패널,.속성패널{margin-bottom:8px;max-height:none}.중앙열{height:720px;margin-bottom:8px}.프롬프트독{position:sticky;bottom:0;margin:8px;grid-template-columns:1fr}.프롬프트맥락{display:none}.프롬프트독 textarea{height:62px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001ms!important;transition-duration:.001ms!important}}
-/* v1.3.1 deployment integrity metadata */
+/* v1.3.2 deployment integrity metadata */
 .빌드뱃지{color:#7f8b95;border-color:#25303a;background:rgba(8,11,14,.76);font-size:9px}
 
-/* v1.3.1 Transform Editing */
+/* v1.3.2 Transform Editing */
 .트랜스폼섹션{background:#10171d}.섹션제목행{display:flex;align-items:center;justify-content:space-between}.섹션제목행 .섹션제목{margin-bottom:0}.편집상태{font:650 9px ui-monospace,monospace;color:var(--muted);border:1px solid var(--line);padding:4px 6px;border-radius:4px}.편집상태.수동{color:var(--accent);border-color:#526a36;background:#151e12}.세로필드{grid-template-columns:1fr;gap:6px}.선택입력{width:100%;min-height:34px;border:1px solid #36424c;border-radius:5px;background:#0d1217;color:var(--text);padding:6px 8px;font-size:11px}.기즈모모드{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:10px 0}.기즈모버튼,.미니버튼{min-height:31px;border:1px solid #34404a;background:#151d24;color:var(--text-2);border-radius:4px;font-size:10px;font-weight:650;cursor:pointer}.기즈모버튼.활성,.미니버튼.활성{border-color:#66794a;color:var(--accent);background:#182117}.기즈모버튼:disabled{opacity:.35;cursor:not-allowed}.기즈모버튼 kbd{font-size:8px;color:var(--muted)}.미니세그먼트{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:8px 0 10px}.좌표그리드{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:6px 0 10px}.좌표그리드 label{display:grid;grid-template-columns:16px minmax(0,1fr);align-items:center;border:1px solid #303b45;background:#0d1217;border-radius:4px;overflow:hidden}.좌표그리드 span{font:600 9px ui-monospace,monospace;color:var(--muted);text-align:center}.좌표그리드 input{min-width:0;width:100%;border:0;background:transparent;color:var(--text);padding:7px 4px;font:600 10px ui-monospace,monospace;outline:0}.보조라벨{margin-top:10px;color:var(--muted);font-size:10px;font-weight:650}.작은버튼{min-height:31px;margin-top:8px;font-size:10px}.도움말{margin:8px 0 0;color:var(--muted);font-size:10px;line-height:1.45}.액션.fight{background:#291b1b;border-color:#6a3636;color:#ffd0ca}
 
-/* v1.3.1 Frame-rate controls */
+/* v1.3.2 Frame-rate controls */
 .프레임카운트{font:600 10px/1 ui-monospace,monospace;color:var(--muted)}
 .렌더설정카드{display:block;padding:9px;border:1px solid #2c3741;border-radius:5px;background:#0d1217}
 .렌더설정카드>span{display:block;color:var(--muted);font-size:10px}
 .FPS선택{width:100%;margin-top:4px;border:0;background:transparent;color:var(--text);font:650 11px ui-monospace,monospace;outline:0;cursor:pointer}
 .FPS선택:focus-visible{box-shadow:0 0 0 1px var(--accent)}
 .렌더설정 .출력설정{grid-column:1/-1}
+
+/* v1.3.2 Camera Editing UX */
+.앱{transition:grid-template-rows .18s ease}.앱.프롬프트접힘{grid-template-rows:64px minmax(0,1fr) 58px}
+.작업공간{grid-template-columns:220px minmax(560px,1fr) 324px}
+
+/* Selection hierarchy */
+.트리아이템.선택가능{cursor:pointer}.트리아이템.선택됨{background:#1a2229;border-color:#42505c;color:var(--text)}
+.트리아이템.선택됨 b{color:var(--text)}.트리아이템.선택됨 .배우아이콘{color:var(--cyan)}.트리아이템.선택됨 .카메라아이콘{color:var(--purple)}
+.트리아이템.현재샷:not(.선택됨){border-left-color:#53606b;background:#141b21}.트리아이템.카메라선택{box-shadow:inset 2px 0 0 var(--purple)}
+
+.선택섹션{background:#161d24;border-bottom-color:#3a4650}.선택헤더{display:grid;grid-template-columns:42px minmax(0,1fr);gap:11px;align-items:center;margin-bottom:13px}
+.선택아이콘{width:42px;height:42px;display:grid;place-items:center;border:1px solid var(--line-strong);background:#0d1217;border-radius:5px;font:750 10px ui-monospace,monospace;letter-spacing:.03em}
+.선택아이콘.카메라{color:#ded3ff;border-color:#55456d;background:#1c1725}.선택아이콘.배우{color:#c5ebff;border-color:#31566a;background:#121f26}
+.선택텍스트{min-width:0}.선택텍스트 strong{display:block;margin-top:4px;font-size:14px;font-weight:760;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.선택텍스트 p{margin:4px 0 0;color:var(--muted);font-size:10.5px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.선택대상필드{margin-bottom:8px}.편집툴바{padding-top:3px}.기즈모모드{margin:7px 0 6px}.기즈모버튼{min-height:34px;font-size:11px}.기즈모버튼.활성{border-color:#586875;background:#202a32;color:var(--text)}
+.기즈모버튼[data-transform-mode="target"].활성{border-color:#62537c;color:#e1d7ff;background:#211b2a}
+.편집보조행{display:flex;align-items:center;justify-content:space-between;gap:8px}.공간세그먼트,.히스토리버튼들{display:flex;align-items:center;gap:4px}
+.공간세그먼트{padding:3px;border:1px solid #303b45;border-radius:5px;background:#0d1217}.공간버튼{min-height:27px;padding:4px 8px;border:1px solid transparent;border-radius:3px;background:transparent;color:var(--muted);font:650 9.5px ui-monospace,monospace;cursor:pointer}
+.공간버튼.활성{background:#222c35;border-color:#465461;color:var(--text)}.아이콘버튼{width:31px;height:31px;border:1px solid #34404a;border-radius:4px;background:#151d24;color:var(--text-2);font-size:16px;cursor:pointer}
+.아이콘버튼:disabled{opacity:.32;cursor:not-allowed}.아이콘버튼:not(:disabled):hover{border-color:#53616d;background:#202933;color:var(--text)}
+
+/* Contextual Inspector */
+.트랜스폼섹션{background:#10161b}.트랜스폼섹션 .섹션제목{font-size:12px;color:var(--text);font-weight:730}.좌표그리드 input{font-size:11px}.보조라벨{font-size:10.5px}.선택입력{font-size:11.5px}
+.속성패널 .필드{font-size:11.5px}.현재샷카드 strong{font-size:14.5px}.렌더설정 strong{font-size:11.5px}
+
+/* Viewport selection state */
+.선택HUD{position:absolute;z-index:5;right:14px;bottom:50px;display:flex;align-items:center;gap:7px;padding:6px 8px;border:1px solid #33404a;border-radius:4px;background:rgba(9,13,17,.9);backdrop-filter:blur(5px);pointer-events:none}
+.선택HUD span{font:700 9.5px ui-monospace,monospace;color:var(--text-2)}.선택HUD strong{font:700 9.5px ui-monospace,monospace;color:var(--accent)}
+.앱[data-view="preview"] .선택HUD{display:none}
+
+/* Timeline remains the second visual focus */
+.타임라인카드{grid-template-rows:36px 20px minmax(0,1fr)}.타임라인제목 strong{font-size:13.5px}.트랙라벨{font-size:11.5px}.타임클립 span{font-size:11.5px}
+
+/* Collapsible prompt command bar */
+.프롬프트맥락{min-width:0}.프롬프트라벨{min-width:0}.프롬프트라벨 strong{font-size:12.5px}.프롬프트라벨 small{display:block;margin-top:3px;color:var(--muted);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.독토글{margin-left:auto;width:30px;height:30px;border:1px solid #34404a;border-radius:4px;background:#151d24;color:var(--text-2);font-size:14px;cursor:pointer;flex:none}.독토글:hover{background:#202933;color:var(--text)}
+.프롬프트독.접힘{grid-template-columns:190px minmax(280px,1fr) 145px;padding-top:7px;padding-bottom:7px}.프롬프트독.접힘 .프롬프트라벨 small{display:none}.프롬프트독.접힘 .프롬프트맥락 strong{margin-top:2px}.프롬프트독.접힘 textarea{height:38px;min-height:38px;line-height:1.25;padding:9px 11px;overflow:hidden;white-space:nowrap}.프롬프트독.접힘 .주버튼{min-height:38px}.프롬프트독.접힘 .프롬프트맥락{gap:8px}
+
+@media(max-width:1180px){.작업공간{grid-template-columns:194px minmax(490px,1fr) 292px}.프롬프트독.접힘{grid-template-columns:170px 1fr 130px}}
+@media(max-width:930px){.앱.프롬프트접힘{display:block}.프롬프트독.접힘{grid-template-columns:1fr}.프롬프트독.접힘 .프롬프트맥락{display:flex}.프롬프트독.접힘 textarea{white-space:normal}}
+@media(prefers-reduced-motion:reduce){.앱{transition:none}}
+.공간버튼:disabled{opacity:.35;cursor:not-allowed}

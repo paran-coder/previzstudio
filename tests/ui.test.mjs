@@ -54,7 +54,7 @@ test('Vite production build는 CDN import map 대신 hashed assets와 npm depend
   const vercel=JSON.parse(await readFile(new URL('vercel.json',root),'utf8'));
   assert.doesNotMatch(html,/importmap/);
   assert.doesNotMatch(html,/cdn\.jsdelivr\.net/);
-  assert.equal(pkg.version,'1.3.1');
+  assert.equal(pkg.version,'1.3.2');
   assert.equal(pkg.dependencies.three,'0.185.1');
   assert.equal(pkg.dependencies.mediabunny,'1.55.7');
   assert.match(pkg.scripts.build,/vite build/);
@@ -63,7 +63,7 @@ test('Vite production build는 CDN import map 대신 hashed assets와 npm depend
 });
 
 
-test('v1.3.1 UI는 Camera/Actor Transform 편집 컨트롤을 제공한다',async()=>{
+test('v1.3.2 UI는 Camera/Actor Transform 편집 컨트롤을 제공한다',async()=>{
   const html=await readFile(new URL('index.html',root),'utf8');
   for(const id of ['edit-target','cam-x','cam-y','cam-z','cam-height','cam-distance','target-mode','target-x','target-y','target-z','actor-x','actor-y','actor-z','actor-rotation','reset-camera-auto']) assert.match(html,new RegExp(`id="${id}"`));
   assert.match(html,/data-transform-mode="translate"/);
@@ -76,7 +76,7 @@ test('v1.3.1 UI는 Camera/Actor Transform 편집 컨트롤을 제공한다',asyn
 });
 
 
-test('v1.3.1 UI는 24/25/30/60 FPS 선택과 frame count를 제공한다',async()=>{
+test('v1.3.2 UI는 24/25/30/60 FPS 선택과 frame count를 제공한다',async()=>{
   const html=await readFile(new URL('index.html',root),'utf8');
   assert.match(html,/id="fps-select"/);
   for(const fps of [24,25,30,60]) assert.match(html,new RegExp(`value="${fps}"`));
@@ -87,4 +87,32 @@ test('v1.3.1 UI는 24/25/30/60 FPS 선택과 frame count를 제공한다',async(
   assert.match(app,/SUPPORTED_FPS/);
   assert.match(app,/timeline\.step=String\(1\/fps\)/);
   assert.match(app,/setProjectFps/);
+});
+
+
+test('v1.3.2 Camera Editing UX는 선택 상태, World/Local, Undo/Redo, Prompt collapse를 제공한다',async()=>{
+  const html=await readFile(new URL('index.html',root),'utf8');
+  const app=await readFile(new URL('src/app.js',root),'utf8');
+  const css=await readFile(new URL('styles.css',root),'utf8');
+  const three=await readFile(new URL('src/renderer-three.js',root),'utf8');
+  for(const id of ['selected-object-title','selected-object-subtitle','selection-hud','undo-edit','redo-edit','prompt-dock','prompt-toggle']) assert.match(html,new RegExp(`id="${id}"`));
+  assert.match(html,/data-transform-space="world"/);
+  assert.match(html,/data-transform-space="local"/);
+  assert.match(app,/undoStack/);
+  assert.match(app,/redoStack/);
+  assert.match(app,/mutateWithHistory/);
+  assert.match(app,/setPromptCollapsed/);
+  assert.match(app,/selectEditTarget/);
+  assert.match(three,/setTransformSpace\(space\)/);
+  assert.match(three,/onTransformStart/);
+  assert.match(three,/onTransformEnd/);
+  assert.match(css,/\.트리아이템\.선택됨/);
+  assert.match(css,/\.프롬프트독\.접힘/);
+  assert.match(css,/\.선택HUD/);
+});
+
+test('v1.3.2 Prompt Dock collapse는 한 줄 command bar를 유지한다',async()=>{
+  const css=await readFile(new URL('styles.css',root),'utf8');
+  assert.match(css,/\.앱\.프롬프트접힘\{grid-template-rows:64px minmax\(0,1fr\) 58px\}/);
+  assert.match(css,/\.프롬프트독\.접힘 textarea\{[^}]*height:38px/);
 });

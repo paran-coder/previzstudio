@@ -26,7 +26,7 @@ export class ThreeSceneEngine {
     this.directorCamera=new T.PerspectiveCamera(43,1,.05,180); this.shotCamera=new T.PerspectiveCamera(50,1,.05,180);
     this.directorTarget=new T.Vector3(0,1.1,-8); this.orbitYaw=.72; this.orbitPitch=.20; this.orbitRadius=17;
     this.dragging=false; this.dragStart=null; this.directorUserAdjusted=false; this.stageRect={width:1,height:1,left:0,top:0};
-    this.editSelection={type:'camera',id:'camera'}; this.cameraEditKey='start'; this.transformMode='translate'; this.gizmoDragging=false; this.onDocumentEdit=null;
+    this.editSelection={type:'camera',id:'camera'}; this.cameraEditKey='start'; this.transformMode='translate'; this.transformSpace='world'; this.gizmoDragging=false; this.onDocumentEdit=null; this.onTransformStart=null; this.onTransformEnd=null;
     this.renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,powerPreference:'high-performance'});
     this.renderer.setClearColor(0x070a0e,1); this.renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
     this.renderer.shadowMap.enabled=true; this.renderer.shadowMap.type=T.PCFSoftShadowMap;
@@ -51,16 +51,17 @@ export class ThreeSceneEngine {
     this.cameraProxy.visible=false;this.targetProxy.visible=false;this.actorProxy.visible=false;this.cameraTargetLine.visible=false;
     this.transformControls=new TransformControls(this.directorCamera,this.canvas);
     const helper=this.transformControls.getHelper?.()||this.transformControls;this.transformHelper=helper;this.scene.add(helper);helper.visible=false;
-    this.transformControls.addEventListener('dragging-changed',e=>{this.gizmoDragging=Boolean(e.value);if(!this.gizmoDragging)this.syncEditProxy();});
+    this.transformControls.addEventListener('dragging-changed',e=>{this.gizmoDragging=Boolean(e.value);if(this.gizmoDragging)this.onTransformStart?.();else {this.onTransformEnd?.();this.syncEditProxy();}});
     this.transformControls.addEventListener('objectChange',()=>this.commitGizmoChange());
   }
   currentShotIndex(){const id=this.activeShot?.id;const i=this.document?.shots?.findIndex(s=>s.id===id);return i>=0?i:0;}
   setEditSelection(type,id=''){this.editSelection={type:type==='actor'?'actor':'camera',id};this.syncEditProxy();}
   setCameraEditKey(key){this.cameraEditKey=key==='end'?'end':'start';this.syncEditProxy();}
   setTransformMode(mode){this.transformMode=['translate','rotate','target'].includes(mode)?mode:'translate';this.syncEditProxy();}
+  setTransformSpace(space){this.transformSpace=space==='local'?'local':'world';this.transformControls?.setSpace?.(this.transformSpace);this.syncEditProxy();}
   syncEditProxy(){
     if(!this.document||!this.transformControls)return;
-    const T=this.THREE,visible=this.viewMode==='edit'&&!this.exportState;
+    const T=this.THREE,visible=this.viewMode==='edit'&&!this.exportState;this.transformControls.setSpace?.(this.transformSpace);
     this.cameraProxy.visible=false;this.targetProxy.visible=false;this.actorProxy.visible=false;this.cameraTargetLine.visible=false;this.transformHelper.visible=visible;
     if(!visible){this.transformControls.detach();return;}
     if(this.editSelection.type==='actor'){

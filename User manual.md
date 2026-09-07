@@ -1,63 +1,55 @@
-# Previz Studio v1.3.1 — 사용자 매뉴얼
+# Previz Studio v1.3.2 — 사용자 매뉴얼
 
-## 1. 기본 프로젝트 설정
-기본 출력은 다음과 같습니다.
+## 1. 기본 프로젝트
+- 1920 × 1080
+- 기본 30 FPS
+- 기본 20초
+- 600 frames
 
-- 해상도: 1920 × 1080
-- 프레임: **30 FPS**
-- 길이: 20.0초
-- 총 프레임: **600 frames**
+## 2. 오브젝트 선택
+왼쪽 Scene Tree에서 Camera 또는 Actor를 선택합니다. 선택 상태는 Scene Tree, 3D Viewport, 오른쪽 Inspector에 동시에 반영됩니다.
 
-## 2. FPS 변경
-오른쪽 `영상 출력` 영역에서 FPS를 선택합니다.
+## 3. Camera 편집
+Camera를 선택하면 오른쪽 Inspector에서 다음을 수정할 수 있습니다.
 
-지원 값:
+- Position X/Y/Z
+- Rotation
+- Height
+- Distance
+- Target
+- Target Offset
+- Lens
+- Start / End Camera Transform
 
-- 24 FPS
-- 25 FPS
-- 30 FPS — 기본값
-- 60 FPS
+## 4. Actor 편집
+Actor를 선택하면 Position과 Rotation을 수정할 수 있습니다. Actor 위치 변경은 해당 Actor의 Action Path 전체에 offset으로 반영됩니다.
 
-FPS를 바꾸어도 Shot 길이는 초 단위로 유지됩니다. 예를 들어 0–4초 Shot은 그대로 4초이며, 24 FPS에서는 96프레임, 30 FPS에서는 120프레임이 됩니다.
+## 5. Transform Gizmo
+상단 Transform 도구에서 편집 모드를 선택합니다.
 
-## 3. 장면 만들기
-하단 입력창에 지원되는 표현을 입력하고 `장면 만들기`를 누릅니다.
+- 이동 — `W`
+- 회전 — `E`
+- 타겟 — `T` (Camera 전용)
 
-예시:
+Inspector 숫자 입력과 3D Gizmo는 같은 Transform 값을 편집합니다.
 
-> 두 사람이 격렬하게 하는 격투씬, 카메라가 다양한 각도로 익사이팅한 앵글로 따라간다.
+## 6. World / Local
+`World`는 씬 좌표축을 기준으로 움직입니다. `Local`은 선택 오브젝트의 회전된 축을 기준으로 움직입니다.
 
-이 표현은 두 배우의 FIGHT 액션과 여러 카메라 각도의 시퀀스로 블로킹됩니다.
+## 7. Undo / Redo
+- `Cmd/Ctrl + Z`: 실행 취소
+- `Cmd/Ctrl + Shift + Z`: 다시 실행
 
-## 4. 편집 뷰
-편집 뷰는 자유 시점입니다. 배우 동선, 카메라 경로, Transform Gizmo를 확인합니다. 최종 출력 화면은 `카메라 프리뷰`에서 확인합니다.
+Camera/Actor Transform 수정과 자동 카메라 복귀 상태를 되돌릴 수 있습니다.
 
-## 5. 카메라 편집
-오른쪽 `Transform` 섹션에서 카메라를 선택합니다.
+## 8. Prompt Dock
+하단 Prompt Dock은 접기/펼치기가 가능합니다. 접어도 현재 입력한 문장은 유지됩니다. Viewport와 Timeline을 넓게 보고 싶을 때 접어 사용합니다.
 
-- 시작 / 끝 카메라 키
-- 위치 X/Y/Z
-- 높이
-- 거리
-- 자유 포인트 / 배우 / 두 배우 중점 타겟
-- 타겟 오프셋
+## 9. Camera Preview
+`카메라 프리뷰`는 최종 출력과 동일한 Canonical 16:9 Frame을 사용합니다.
 
-수정한 Shot은 `사용자 수정` 상태가 되며 `자동 구도로 되돌리기`로 원래 자동 구도로 복귀합니다.
+## 10. 영상 출력
+기본 30 FPS이며 24 / 25 / 30 / 60 FPS 선택을 지원합니다. 20초 / 30 FPS에서는 600프레임을 렌더합니다.
 
-## 6. Transform Gizmo
-- W: 이동
-- E: 회전
-- T: 타겟 편집
-
-Actor도 이동/회전을 직접 수정할 수 있습니다.
-
-## 7. 카메라 프리뷰
-`카메라 프리뷰`는 Canonical 16:9 Frame을 사용합니다. 선택된 프로젝트 FPS를 기준으로 Actor와 Camera time sampling이 진행됩니다.
-
-## 8. 영상 출력
-`프리비즈 영상 렌더`를 누르면 현재 프로젝트의 해상도, FPS, 길이를 그대로 사용합니다.
-
-30 FPS / 20초라면 600프레임을 렌더합니다.
-
-## 9. 레퍼런스 PNG
-시작/중간/끝 PNG도 현재 FPS를 사용합니다. 끝 PNG는 Shot 끝 시점 바로 이전의 마지막 유효 프레임을 사용합니다.
+## 11. 다음 단계
+v1.4.0에서는 Camera Position / Target / Lens의 Keyframe 편집을 Timeline에 추가할 예정입니다.

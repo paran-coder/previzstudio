@@ -12,6 +12,7 @@ export class CanvasSceneEngine {
   setEditSelection(){}
   setCameraEditKey(){}
   setTransformMode(){}
+  setTransformSpace(){}
   refreshEditing(){this.applyTime(this.time);}
   getOutputAspect(){return outputAspect(this.document);}
   resize(){
