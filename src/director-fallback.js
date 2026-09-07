@@ -20,7 +20,7 @@ function envOf(text) {
 }
 function action(type,start,end,from,to,extra={}) { return { type,start,end,from,to,...extra }; }
 function shot(id,title,intent,start,end,movement,lens,cameraStart,cameraEnd,target,extra={}) {
-  return { id,title,intent,start,end,camera:{ movement,lens,distance:extra.distance ?? 0,start:cameraStart,end:cameraEnd,target,handheldAmount:extra.handheldAmount ?? 0,...(extra.targetActorId?{targetActorId:extra.targetActorId}:{}),...(extra.secondaryActorId?{secondaryActorId:extra.secondaryActorId}:{}) } };
+  return { id,title,intent,start,end,camera:{ movement,archetype:extra.archetype || 'free',lens,distance:extra.distance ?? 0,start:cameraStart,end:cameraEnd,target,handheldAmount:extra.handheldAmount ?? 0,...(extra.targetActorId?{targetActorId:extra.targetActorId}:{}),...(extra.secondaryActorId?{secondaryActorId:extra.secondaryActorId}:{}) } };
 }
 
 function chaseScene(prompt,text) {
@@ -33,7 +33,7 @@ function chaseScene(prompt,text) {
     version:SCENE_VERSION,
     sourcePrompt:prompt,
     sequence:{duration,fps:24,width:1920,height:1080},
-    scene:{id:'scene_road_chase_01',continuityKey:`road:night:${rainy?'rain':'clear'}:chase:v2`,environment:{type:'road',time:has(text,['낮','day'])?'day':'night',weather:rainy?'rain':'clear',assetId:'road_procedural'}},
+    scene:{id:'scene_road_chase_01',continuityKey:`road:night:${rainy?'rain':'clear'}:chase:v3`,environment:{type:'road',time:has(text,['낮','day'])?'day':'night',weather:rainy?'rain':'clear',assetId:'road_procedural'}},
     actors:[
       { id:'actor_01',role:'runner',assetId:'actor_neutral',position:[-.55,0,-12],rotationY:0,actions:[
         action('run',0,t(18),[-.55,0,-12],[-.35,0,17],{rotationFrom:0,rotationTo:0}),
@@ -54,10 +54,10 @@ function chaseScene(prompt,text) {
       {id:'street_02',type:'point',intensity:24,position:[4,5,12]},
     ],
     shots:[
-      shot('shot_01','와이드 추격 시작','도로와 두 인물의 거리 관계를 보여준다.',0,t(4),'dolly_out',lensHint||24,[7.2,3.0,-4],[8.2,3.2,-2],[0,1.2,-6],{distance:2,targetActorId:'actor_01'}),
-      shot('shot_02','측면 트래킹','도망자와 추격자의 속도 차이를 측면에서 읽힌다.',t(4),t(9),'track_follow',lensHint||35,[6.8,2.1,-1],[6.2,2.0,1],[0,1.3,0],{distance:8,targetActorId:'actor_01'}),
-      shot('shot_03','추격자 핸드헬드','추격자의 뒤에서 달리는 에너지를 강조한다.',t(9),t(14),'handheld_follow',lensHint||50,[.45,1.85,-5.2],[.35,1.75,-4.2],[0,1.3,0],{distance:5,targetActorId:'actor_02',handheldAmount:.72}),
-      shot('shot_04','사이 트래킹 푸시','두 인물 사이를 따라가며 마지막에 도망자에게 시선을 모은다.',t(14),duration,'track_between',lensHint||35,[3.2,1.85,-1.2],[1.6,1.72,1.0],[0,1.3,0],{distance:4,targetActorId:'actor_01',secondaryActorId:'actor_02',handheldAmount:.18}),
+      shot('shot_01','후방 3/4 와이드','도로와 두 인물의 진행 방향과 거리 관계를 먼저 보여준다.',0,t(4),'track_follow',lensHint||24,[4.8,1.62,-8.5],[4.1,1.58,-7.0],[0,1.4,0],{archetype:'rear_three_quarter',distance:8,targetActorId:'actor_01'}),
+      shot('shot_02','측면 트래킹','도망자와 추격자의 속도 차이를 측면에서 읽는다.',t(4),t(9),'track_follow',lensHint||35,[6.2,1.62,-.9],[6.2,1.62,.8],[0,1.4,0],{archetype:'side_track',distance:6.2,targetActorId:'actor_01'}),
+      shot('shot_03','추격자 후방 핸드헬드','추격자의 뒤에서 달리는 에너지를 강조한다.',t(9),t(14),'handheld_follow',lensHint||50,[.35,1.58,-5.6],[-.25,1.54,-4.6],[0,1.4,0],{archetype:'rear_follow',distance:5,targetActorId:'actor_02',handheldAmount:.72}),
+      shot('shot_04','사이 트래킹 푸시','두 인물 사이를 따라가며 마지막에 도망자에게 시선을 모은다.',t(14),duration,'track_between',lensHint||35,[2.6,1.56,-1.8],[1.15,1.50,.15],[0,1.4,0],{archetype:'between_push',distance:4,targetActorId:'actor_01',secondaryActorId:'actor_02',handheldAmount:.18}),
     ]
   };
 }
@@ -74,7 +74,7 @@ function genericScene(prompt,text) {
   const to = run?[0,0,14]:walk?[0,0,8]:[0,0,0];
   return {
     version:SCENE_VERSION,sourcePrompt:prompt,sequence:{duration,fps:24,width:1920,height:1080},
-    scene:{id:`scene_${env}_01`,continuityKey:`${env}:${night?'night':'day'}:clear:v2`,environment:{type:env,time:night?'night':'day',weather:has(text,['비','rain'])?'rain':'clear',assetId:`${env}_procedural`}},
+    scene:{id:`scene_${env}_01`,continuityKey:`${env}:${night?'night':'day'}:clear:v3`,environment:{type:env,time:night?'night':'day',weather:has(text,['비','rain'])?'rain':'clear',assetId:`${env}_procedural`}},
     actors:[{id:'actor_01',role:'subject',assetId:'actor_neutral',position:[0,0,0],rotationY:0,actions:[action(actionType,0,duration,[0,0,0],to,{rotationFrom:0,rotationTo:0})]}],
     props:[],lights:[{id:'ambient_01',type:'ambient',intensity:night?.6:1.1,position:[0,5,0]},{id:'key_01',type:'directional',intensity:2.2,position:[-5,8,5]}],
     shots:[shot('shot_01','메인 샷','지원되는 동작과 카메라 명령을 하나의 샷으로 표현한다.',0,duration,movement,lens,[4.5,2.1,-5],[4.0,2.0,2],[0,1.3,2],{distance:7,targetActorId:'actor_01',handheldAmount:has(text,['핸드헬드','역동적'])?.35:0})]

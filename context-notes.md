@@ -1,111 +1,76 @@
-# Previz Studio v1.2.0 — Context Notes
+# Previz Studio v1.2.1 — Context Notes
+
+## Patch Goal
+Previz Studio v1.2.1 fixes two product-critical issues discovered in v1.2.0:
+1. Camera preview and exported video must evaluate the exact same shot camera at the same master time.
+2. The dark UI must regain readable hierarchy through surface layering, typography scale, and restrained accent usage.
 
 ## Product Intent
-Previz Studio is a web-based 3D previsualization tool for film/advertising creators and AI-video creators.
+Previz Studio is a browser-based previz tool for film/advertising creators and AI-video creators. The primary deliverable is a reusable visual reference: blocking, actor motion, camera angle/movement, and a rendered sequence. Natural-language input is only a setup shortcut.
 
-The product promise is not “perfect natural-language understanding.” The promise is:
+## v1.2.1 Camera Rules
+- Editing view remains a free director/orbit camera used only for spatial inspection.
+- Camera Preview uses the same `evaluateCameraAtTime()` result as export.
+- Video export must not maintain a separate camera path implementation.
+- Shot changes use the master sequence time and deterministic cut boundaries.
+- Default shot placement must derive from actor blocking + travel vector + lens/shot archetype, not arbitrary hard-coded world coordinates.
+- Shot overlay appears briefly after a cut with shot number, lens, and camera archetype.
 
-**quick scene blocking -> actor motion -> camera motion -> shot playback -> rendered reference video for AI video generation.**
+## v1.2.1 UI Direction
+The UI is informed by the provided ui-polish workflow and Lamborghini-inspired design tokens, but does not copy either visual system.
 
-Natural language is an optional accelerator that extracts only what the engine can actually express.
+### Surface hierarchy
+- Abyss/background: #06080A
+- Workspace: #0B0F13
+- Panel: #12171C
+- Elevated panel: #181F26
+- Interactive/selected: #202933
+- Border: #2A343E
 
-## v1.2.0 Primary Goal
-Deliver a real 20-second rendered previz sequence that can be used as an AI-video reference.
+Depth is created primarily through surface-lightness shifts and 1px borders rather than heavy shadows.
 
-Official validation target:
-- Duration: 20 seconds
-- Resolution: 1920×1080
-- Frame rate: 24 fps
-- Output preference: MP4 when the browser supports an MP4-capable encoder/mux path; WebM fallback otherwise
-- Demo: night road chase with two actors and animated camera
+### Accent discipline
+- Product primary: #C6FF4A, reserved for primary CTA/current playhead/current selection.
+- Informational cyan: #4CB8E8, reserved for actor/action data and info feedback.
+- Camera purple: #9A7BFF, reserved for camera track and camera-related affordances.
+- Do not scatter accent colors decoratively.
 
-## v1.2.0 Completion Criteria
-1. Separate **편집 뷰** and **렌더 뷰**.
-2. Character action system supports at least: `idle`, `walk`, `run`, `chase`, `turn`, `stop`.
-3. Actor transforms actually change over time; animation is not only a visual pose.
-4. Camera motion system supports at least: `static`, `dolly_in`, `dolly_out`, `track_follow`, `track_between`, `orbit`, `handheld_follow`.
-5. A 20-second multi-shot sequence plays continuously on one master timeline.
-6. Render view hides edit-only guides, labels, gizmos, grids and camera paths.
-7. Export produces a real video file from the rendered sequence.
-8. Start/mid/end frame references and scene/reference JSON remain available.
-9. The official chase demo must complete end-to-end in the browser.
+### Typography hierarchy
+- Product/brand: 15px / 700
+- Panel title: 12px / 700
+- Current shot title: 13px / 700
+- Section title: 10px / 650
+- Body: 11px / 1.5
+- Field label: 10.5–11px
+- Field value: 11–12px / 600
+- Button: 11px / 650
+- Primary CTA: 12px / 700
+- Timeline clip and track: 10px / 600
+- Metadata: 9px only where truly secondary
+- Avoid applying wide uppercase tracking to Korean section labels.
 
-## Official Demo
-> 밤의 도로. 한 사람이 도망치고 다른 사람이 뒤따라 쫓아간다. 카메라는 역동적으로 두 사람 사이를 오가며 추격한다.
+## Reference UI Principles
+- Structure before decoration.
+- Viewport is the visual center of gravity.
+- Timeline is the second most important module.
+- Shot inspector is third.
+- Scene tree is supporting navigation.
+- Renderer/backend status is metadata and must never compete with shot information.
+- Primary and secondary actions must not visually compete.
 
-Expected first-pass interpretation:
-- Environment: `road`, `night`
-- Actor 01: run away
-- Actor 02: chase actor 01
-- Sequence length: 20 sec
-- Multi-shot coverage:
-  - 0–4 sec: wide establishing
-  - 4–9 sec: side tracking
-  - 9–14 sec: handheld follow on pursuer
-  - 14–20 sec: track between actors + push toward runner
+## Official Regression Sequence
+20-second night road chase, 24fps, 1920x1080:
+- Shot 01: rear 3/4 wide establish
+- Shot 02: side tracking
+- Shot 03: rear chase / handheld follow
+- Shot 04: dynamic between / push
 
-## Natural-language Strategy
-Natural language is a command extractor, not the core product.
-
-The parser should extract only supported concepts:
-- environment / time
-- actor count
-- actor action
-- target relationship (e.g. chase target)
-- camera motion
-- lens hints
-- pacing hints
-
-Unknown or abstract phrases fall back to sensible defaults instead of blocking scene creation.
-
-## Animation Strategy
-- Prefer one consistent neutral previs mannequin.
-- Motion clarity is more important than character detail.
-- v1.2.0 can use procedural body motion when skeletal clips are unavailable, but root motion must be correct.
-- Future versions may replace procedural animation with retargeted GLB skeletal clips without changing the action timeline API.
-
-## Camera Strategy
-Camera is a first-class timeline track.
-- Camera position and target are evaluated continuously.
-- Shot transitions are handled on the master 20-second sequence.
-- Shot camera output is what the renderer/exporter records.
-
-## Render Strategy
-Two visual modes:
-
-### 편집 뷰
-Shows grid, actor IDs, paths, camera guides, safe frame, timeline information and debugging overlays.
-
-### 렌더 뷰
-Shows only the image needed for an AI-video reference: environment, actors, lighting, materials and shadows.
-
-The export path renders the master sequence from the shot camera, not the director/orbit camera.
-
-## AI-video Reference Strategy
-Primary output:
-- full sequence video
-- per-shot start/mid/end PNG
-- Scene JSON
-- Reference Manifest JSON
-
-The render does not need to be photoreal. It must communicate blocking, motion, framing, lens feel and continuity clearly.
-
-## UI Principles
-- Korean-first UI.
-- 3D viewport remains the visual center.
-- Distinguish editing state from final render state clearly.
-- Timeline should read like a lightweight NLE/Blender dope-sheet hybrid, without Blender-level complexity.
-- Structure before decoration; restrained motion and shadows.
-- Keyboard accessibility and reduced-motion support.
-
-## Branding / Metadata Requirement
-v1.2.0 must include the previously generated 1200×630 OG image as `og.png` and add Open Graph + X/Twitter large-image metadata.
-
-## Non-goals for v1.2.0
-- Blender-class modeling/sculpting/UV tools
-- photoreal final rendering
-- full character rig editor
-- advanced IK authoring UI
-- generative 3D asset creation
-- deep semantic language understanding
-- external LLM dependency as a requirement
+## Completion Criteria
+- Preview and exported frames match at representative master times.
+- First shot starts from a blocking-derived rear 3/4 angle instead of an arbitrary elevated orbit position.
+- Camera Preview auto-cuts through all sequence shots.
+- Edit View remains clearly labeled as a non-render spatial workspace.
+- Panel surfaces are distinguishable without relying on shadows.
+- No core Korean UI label is below 10px.
+- Only metadata may use 9px.
+- Runtime errors: 0 in smoke test.

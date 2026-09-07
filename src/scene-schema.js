@@ -1,8 +1,9 @@
-export const SCENE_VERSION = '1.2.0';
+export const SCENE_VERSION = '1.2.1';
 
 export const CAMERA_MOVES = [
   'static', 'dolly_in', 'dolly_out', 'track_follow', 'track_between', 'orbit', 'handheld_follow'
 ];
+export const CAMERA_ARCHETYPES = ['free','rear_three_quarter','side_track','rear_follow','between_push'];
 export const ENVIRONMENTS = ['road', 'urban_alley', 'warehouse', 'corridor', 'office', 'studio'];
 export const ACTOR_ACTIONS = ['idle', 'walk', 'run', 'chase', 'turn', 'stop'];
 
@@ -97,7 +98,7 @@ export const SCENE_JSON_SCHEMA = {
             type:'object', additionalProperties:false,
             required:['movement','lens','distance','start','end','target','handheldAmount'],
             properties:{
-              movement:{type:'string',enum:CAMERA_MOVES}, lens:{type:'number',minimum:18,maximum:120},
+              movement:{type:'string',enum:CAMERA_MOVES}, archetype:{type:'string',enum:CAMERA_ARCHETYPES}, lens:{type:'number',minimum:18,maximum:120},
               distance:{type:'number',minimum:0,maximum:50}, start:vec3Schema, end:vec3Schema, target:vec3Schema,
               targetActorId:{type:'string'}, secondaryActorId:{type:'string'}, handheldAmount:{type:'number',minimum:0,maximum:1},
             }
@@ -120,7 +121,7 @@ export function validateSceneDocument(doc) {
   if (!Array.isArray(doc?.shots) || doc.shots.length < 1) errors.push('샷이 최소 1개 필요합니다.');
   const duration = Number(doc?.sequence?.duration || 0);
   if (!(duration >= 1 && duration <= 120)) errors.push('시퀀스 길이가 올바르지 않습니다.');
-  if (doc?.sequence?.fps !== 24) errors.push('v1.2.0 기본 시퀀스 FPS는 24여야 합니다.');
+  if (doc?.sequence?.fps !== 24) errors.push('v1.2.1 기본 시퀀스 FPS는 24여야 합니다.');
   for (const [i, actor] of (doc?.actors || []).entries()) {
     for (const [j, action] of (actor.actions || []).entries()) {
       if (!ACTOR_ACTIONS.includes(action?.type)) errors.push(`배우 ${i+1} 액션 ${j+1}: 지원하지 않는 동작입니다.`);

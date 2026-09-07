@@ -33,3 +33,31 @@ test('카메라 위치는 샷 종류와 시간에 따라 실제로 이동한다'
   assert.equal(c15.shot.camera.movement,'track_between');
   assert.notDeepEqual(c15.position,c19.position);
 });
+
+test('첫 샷 카메라는 배우의 진행 방향 뒤쪽 3/4 위치에서 낮게 시작한다',()=>{
+  const actor=evaluateActorAtTime(doc,'actor_01',0);
+  const cam=evaluateCameraAtTime(doc,0);
+  assert.equal(cam.archetype,'rear_three_quarter');
+  assert.ok(cam.position[1] < 2.0);
+  assert.ok(cam.position[2] < actor.position[2] - 5);
+  assert.ok(cam.position[0] > actor.position[0] + 3);
+  assert.ok(cam.target[2] > actor.position[2]);
+});
+
+test('샷 경계 양쪽에서 카메라 evaluator가 정확한 활성 샷을 선택한다',()=>{
+  const before=evaluateCameraAtTime(doc,3.999);
+  const after=evaluateCameraAtTime(doc,4.001);
+  assert.equal(before.shot.id,'shot_01');
+  assert.equal(after.shot.id,'shot_02');
+  assert.notDeepEqual(before.position,after.position);
+});
+
+test('480개 24fps 프레임 전체에서 카메라 transform이 유한하고 샷 컷이 유지된다',()=>{
+  const counts=new Map();
+  for(let i=0;i<480;i++){
+    const t=i/24,cam=evaluateCameraAtTime(doc,t);
+    for(const v of [...cam.position,...cam.target,cam.lens]) assert.ok(Number.isFinite(v));
+    counts.set(cam.shot.id,(counts.get(cam.shot.id)||0)+1);
+  }
+  assert.deepEqual([...counts.entries()],[['shot_01',96],['shot_02',120],['shot_03',120],['shot_04',144]]);
+});

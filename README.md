@@ -1,109 +1,64 @@
-# Previz Studio v1.2.0
+# Previz Studio v1.2.1
 
-영화·광고 제작자와 AI 영상 크리에이터를 위한 웹 기반 3D 프리비즈 도구입니다.
+영화·광고 제작자와 AI 영상 크리에이터를 위한 웹 기반 3D 프리비즈 도구입니다. 자연어는 초기 블로킹 입력 수단이며, 제품의 핵심 결과물은 **인물 동작 + 카메라 앵글/무빙 + 렌더된 프리비즈 레퍼런스**입니다.
 
-v1.2.0의 중심은 자연어 해석이 아니라 **인물 동작 + 카메라 동작 + 20초 시퀀스 렌더링**입니다. 자연어는 엔진이 표현할 수 있는 환경·인물·행동·카메라 명령을 빠르게 추출하는 입력 보조 수단으로 사용합니다.
+## v1.2.1 핵심 패치
 
-## v1.2.0 목표
+### Camera Preview = Export
+- `편집 뷰`: 공간 확인용 자유 director camera
+- `카메라 프리뷰`: 최종 영상과 동일한 shot camera
+- Preview와 Export는 동일한 master-time `evaluateCameraAtTime()`을 사용합니다.
+- shot cut도 20초 master timeline의 동일한 boundary를 사용합니다.
 
-공식 데모 문장:
+### Blocking-derived camera
+공식 추격 장면의 카메라는 arbitrary world coordinate가 아니라 actor blocking과 진행 방향을 기준으로 계산됩니다.
 
-> 밤의 도로. 한 사람이 도망치고 다른 사람이 뒤따라 쫓아간다. 카메라는 역동적으로 두 사람 사이를 오가며 추격한다.
+1. Rear 3/4 Wide — 24mm
+2. Side Tracking — 35mm
+3. Rear Handheld Follow — 50mm
+4. Between Tracking Push — 35mm
 
-이를 다음과 같은 실제 20초 프리비즈로 변환하는 것이 완료 조건입니다.
+### UI hierarchy overhaul
+제공된 UI polish 원칙과 dark surface token reference를 참고해 다음을 적용했습니다.
 
-- 0–4초: 24mm 와이드 공간 설정
-- 4–9초: 35mm 측면 트래킹
-- 9–14초: 50mm 추격자 핸드헬드 팔로우
-- 14–20초: 35mm 두 인물 사이 트래킹 + 러너 방향 푸시
+- 5단계 dark surface hierarchy
+- panel/title/body/metadata typography 분리
+- timeline clip 10px 이상
+- current shot title 13px
+- panel title 12px
+- accent color 역할 제한
+- 편집/프리뷰 상태에 따른 primary CTA 전환
 
-## 핵심 기능
-
-### 편집 뷰
-- 그리드
-- 배우 ID
-- 배우 동선
-- 카메라 경로
-- 샷 가이드
-- 마스터 타임라인
-
-### 렌더 뷰
-- 편집용 가이드 제거
-- 실제 Shot Camera 구도
-- 조명 / 재질 / 그림자 표시
-- AI 영상 생성용 레퍼런스 화면
-
-### 캐릭터 액션
-- Idle
-- Walk
-- Run
-- Chase
-- Turn
-- Stop
-
-### 카메라 모션
-- Static
-- Dolly In / Out
-- Track Follow
-- Track Between
-- Orbit
-- Handheld Follow
-
-### 출력
-기본 렌더 설정:
-- 1920×1080
-- 24 fps
-- 20초
-- MP4 우선, 브라우저 지원이 부족하면 WebM fallback
-
-추가 레퍼런스:
-- 샷별 시작 / 중간 / 끝 PNG
-- Scene JSON
-- Reference Manifest JSON
+## 기본 출력
+- 1920 × 1080
+- 24fps
+- 20초 공식 demo
+- MP4 우선 / 브라우저 호환 fallback
+- shot start/mid/end PNG
+- Scene JSON / Reference Manifest JSON
 
 ## 실행
-
 ```bash
 npm start
 ```
-
 브라우저에서 `http://127.0.0.1:4173`을 엽니다.
 
-## 제품 원칙
-
-Previz Studio는 Blender를 웹에서 복제하는 프로그램이 아닙니다. Blender 프리비즈가 주는 핵심 결과 — 공간 블로킹, 인물 동선, 카메라 구도, 렌즈 느낌, 움직임 — 을 훨씬 단순한 작업 흐름으로 만드는 것을 목표로 합니다.
-
-자연어는 완벽하게 이해할 필요가 없습니다. 엔진이 지원하는 명령으로 변환할 수 있는 부분만 최대한 반영하고 나머지는 안정적인 기본값을 사용합니다.
-
-## AI 영상 제작에서의 사용
-
-1. 장면을 빠르게 블로킹합니다.
-2. 캐릭터 동작과 카메라를 20초 마스터 타임라인에서 확인합니다.
-3. 렌더 뷰에서 최종 프리비즈 구도를 확인합니다.
-4. 프리비즈 영상과 샷별 PNG를 출력합니다.
-5. 생성된 파일을 AI 영상 생성 프로그램의 reference image / reference video로 사용합니다.
+Three.js를 강제로 우회해 Canvas validation renderer를 사용하려면:
+```text
+http://127.0.0.1:4173/?renderer=canvas
+```
 
 ## 테스트
-
 ```bash
 npm run check
 npm test
 ```
 
-v1.2.0 완료 시 20초 × 24fps = 480 프레임의 공식 추격 시퀀스를 브라우저에서 실제 렌더링하여 영상 파일 생성까지 검증합니다.
+현재 자동 검증: **14/14 PASS**.
 
-## v1.2.0 검증 결과
+## 배포 후 확인할 항목
+작업 컨테이너에서는 headless Chromium graphics initialization이 동작하지 않아 production Three.js visual smoke test는 배포 후 확인해야 합니다. 특히 다음을 확인하십시오.
 
-- JavaScript syntax check: PASS
-- Unit tests: 8 PASS / 0 FAIL
-- Browser smoke test: PASS
-- Browser page errors: 0
-- 20초 마스터 재생 및 자동 샷 전환: PASS
-- 자연어 `밤의 복도 / 50mm / 달리기 / 따라가기` 재생성: PASS
-- 실제 영상 렌더: PASS
-  - H.264 MP4
-  - 1920×1080
-  - 약 19.99초
-  - 약 24fps
-
-브라우저에 WebCodecs가 있으면 MP4 고속 프레임 렌더 경로를 먼저 시도하고, 지원하지 않으면 MediaRecorder 실시간 렌더로 자동 전환합니다.
+1. 카메라 프리뷰 0s / 4s / 9s / 14s cut
+2. 다운로드한 20초 MP4의 같은 시점 구도
+3. 패널 surface separation과 한글 text hierarchy

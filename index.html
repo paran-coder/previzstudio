@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#080b0f" />
-  <title>Previz Studio v1.2.0 — 3D 프리비즈 레퍼런스</title>
+  <meta name="theme-color" content="#06080a" />
+  <title>Previz Studio v1.2.1 — 3D 프리비즈 레퍼런스</title>
   <meta name="description" content="인물 동작과 카메라 무빙을 3D 프리비즈로 만들고 AI 영상 생성용 레퍼런스 영상으로 렌더합니다." />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Previz Studio — 자연어로 만드는 3D 프리비즈" />
-  <meta property="og:description" content="블로킹, 인물 동작, 카메라 무빙을 20초 프리비즈 영상으로 렌더해 AI 영상 생성 레퍼런스로 사용하세요." />
+  <meta property="og:description" content="블로킹, 인물 동작, 카메라 무빙을 프리비즈 영상으로 렌더해 AI 영상 생성 레퍼런스로 사용하세요." />
   <meta property="og:image" content="/og.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -18,21 +18,22 @@
   <meta name="twitter:description" content="인물과 카메라가 움직이는 프리비즈를 AI 영상 생성용 레퍼런스로 렌더합니다." />
   <meta name="twitter:image" content="/og.png" />
   <link rel="stylesheet" href="/styles.css" />
-  <script type="importmap">
-  {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js"}}
-  </script>
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js"}}</script>
 </head>
 <body>
-<div id="app" class="앱">
+<div id="app" class="앱" data-view="edit">
   <header class="상단바">
     <div class="브랜드">
       <div class="브랜드마크">P</div>
-      <div><div class="브랜드행"><strong>Previz Studio</strong><span class="버전">v1.2.0</span></div><span>AI 영상 레퍼런스용 3D 프리비즈</span></div>
+      <div class="브랜드텍스트">
+        <div class="브랜드행"><strong>Previz Studio</strong><span class="버전">v1.2.1</span></div>
+        <span class="브랜드설명">AI 영상 레퍼런스용 3D 프리비즈</span>
+      </div>
     </div>
     <div class="상단액션">
       <div class="세그먼트" aria-label="보기 모드">
         <button class="세그먼트버튼 활성" data-view="edit">편집 뷰</button>
-        <button class="세그먼트버튼" data-view="render">렌더 뷰</button>
+        <button class="세그먼트버튼" data-view="preview">카메라 프리뷰</button>
       </div>
       <button id="show-json" class="버튼 고스트">씬 JSON</button>
       <button id="export-json" class="버튼 보조">씬 내보내기</button>
@@ -41,26 +42,37 @@
 
   <main class="작업공간">
     <aside class="패널 씬패널">
-      <div class="패널헤더"><span>씬</span><span class="상태점"></span></div>
+      <div class="패널헤더"><span>씬</span><span class="상태점" aria-label="씬 준비됨"></span></div>
       <div id="scene-tree" class="씬트리"></div>
-      <div class="연속성카드"><span class="눈썹">연속성</span><strong id="continuity-label">씬 고정</strong><p>20초 시퀀스 전체에서 배우 ID와 공간 배치를 유지합니다.</p></div>
+      <div class="연속성카드">
+        <span class="메타라벨">연속성</span>
+        <strong id="continuity-label">씬 고정</strong>
+        <p>전체 시퀀스에서 배우 ID와 공간 배치를 유지합니다.</p>
+      </div>
     </aside>
 
     <section class="중앙열">
       <div class="뷰포트카드">
         <div class="뷰포트툴바">
-          <div class="뷰포트메타"><span id="environment-label" class="필">도로 · 밤</span><span id="camera-label" class="필 흐림">24mm · 와이드</span></div>
-          <div class="엔진상태"><span class="엔진뱃지 디렉터">프리비즈 디렉터 · 로컬</span><span id="renderer-status" class="엔진뱃지">렌더러 준비 중</span></div>
+          <div class="샷요약">
+            <div class="샷요약상단"><span id="viewport-shot-id" class="샷아이디">SHOT 01</span><strong id="viewport-shot-title">후방 3/4 와이드</strong></div>
+            <div class="뷰포트메타"><span id="environment-label" class="필">도로 · 밤</span><span id="camera-label" class="필">24mm · 돌리 아웃</span></div>
+          </div>
+          <div class="엔진상태"><span id="renderer-status" class="엔진뱃지">렌더러 준비 중</span></div>
         </div>
+        <div id="view-status" class="뷰상태"><strong>편집 작업 시점</strong><span>최종 출력 화면이 아닙니다.</span></div>
         <div id="viewport" class="뷰포트"><div class="로딩"><span></span><b>3D 엔진 준비 중</b></div></div>
-        <div id="safe-frame" class="세이프프레임"><span>16:9 · SHOT CAMERA</span></div>
+        <div id="safe-frame" class="세이프프레임"><span>16:9</span></div>
+        <div id="shot-overlay" class="샷오버레이" aria-live="polite">
+          <span id="overlay-shot">SHOT 01</span><strong id="overlay-title">후방 3/4 와이드</strong><small id="overlay-meta">24mm · REAR 3/4 WIDE</small>
+        </div>
         <div class="뷰포트하단"><span id="shot-intent">추격 장면</span><span id="progress-readout">00:00.0 / 00:20.0</span></div>
       </div>
 
       <section class="타임라인카드">
         <div class="타임라인헤더">
-          <div><span class="눈썹">마스터 시퀀스</span><strong>20초 · 24 FPS</strong></div>
-          <div class="재생컨트롤"><button id="play" class="재생버튼">▶</button><button id="reset" class="리셋버튼">↺</button><span id="timeline-time" class="모노">00:00.0</span></div>
+          <div class="타임라인제목"><span class="메타라벨">마스터 시퀀스</span><strong>20초 · 24 FPS</strong></div>
+          <div class="재생컨트롤"><button id="play" class="재생버튼" aria-label="재생">▶</button><button id="reset" class="리셋버튼" aria-label="처음으로">↺</button><span id="timeline-time" class="모노">00:00.0</span></div>
         </div>
         <div class="룰러"><span>0</span><span>5</span><span>10</span><span>15</span><span>20s</span></div>
         <div id="timeline-tracks" class="트랙목록"></div>
@@ -69,17 +81,17 @@
     </section>
 
     <aside class="패널 속성패널">
-      <div class="패널헤더"><span>샷 / 렌더</span><span id="shot-index-label" class="눈썹">샷 01</span></div>
-      <section class="속성섹션">
+      <div class="패널헤더"><span>샷 인스펙터</span><span id="shot-index-label" class="패널메타">샷 01</span></div>
+      <section class="속성섹션 현재샷섹션">
         <div class="섹션제목">현재 샷</div>
-        <div class="현재샷카드"><strong id="intent-title">와이드 추격 시작</strong><p id="intent-copy"></p></div>
+        <div class="현재샷카드"><strong id="intent-title">후방 3/4 와이드</strong><p id="intent-copy"></p></div>
         <label class="필드"><span>렌즈</span><div class="입력단위"><input id="lens" type="number" min="18" max="120" value="24"><span>mm</span></div></label>
-        <label class="필드"><span>카메라</span><div id="movement-label" class="읽기값">돌리 아웃</div></label>
+        <label class="필드"><span>카메라 무빙</span><div id="movement-label" class="읽기값">돌리 아웃</div></label>
       </section>
-      <section class="속성섹션">
-        <div class="섹션제목">프리비즈 영상 렌더</div>
+      <section class="속성섹션 렌더섹션">
+        <div class="섹션제목">영상 출력</div>
         <div class="렌더설정"><div><span>해상도</span><strong>1920 × 1080</strong></div><div><span>프레임</span><strong>24 FPS</strong></div><div><span>길이</span><strong id="render-duration">20.0초</strong></div><div><span>출력</span><strong>MP4 우선</strong></div></div>
-        <button id="render-video" class="버튼 주버튼 넓게">20초 프리비즈 렌더</button>
+        <button id="render-video" class="버튼 렌더버튼 넓게">프리비즈 영상 렌더</button>
         <div class="렌더진행"><div><span id="render-progress-bar"></span></div><p id="render-progress-text">렌더 대기</p></div>
       </section>
       <section class="속성섹션">
@@ -90,13 +102,13 @@
   </main>
 
   <section class="프롬프트독">
-    <div class="프롬프트맥락"><span class="디렉터점"></span><div><span class="눈썹">프리비즈 디렉터</span><strong>표현 가능한 동작과 카메라 명령만 빠르게 반영합니다.</strong></div></div>
+    <div class="프롬프트맥락"><span class="디렉터점"></span><div><span class="메타라벨">프리비즈 디렉터</span><strong>표현 가능한 동작과 카메라를 빠르게 블로킹합니다.</strong></div></div>
     <textarea id="prompt" rows="2" spellcheck="false">밤의 도로. 한 사람이 도망치고 다른 사람이 뒤따라 쫓아간다. 카메라는 역동적으로 두 사람 사이를 오가며 추격한다.</textarea>
     <button id="generate" class="버튼 주버튼"><span>장면 만들기</span><kbd>⌘↵</kbd></button>
   </section>
 </div>
 
-<dialog id="json-dialog" class="JSON대화상자"><div class="대화헤더"><div><span class="눈썹">씬 문서</span><h2>Scene JSON</h2></div><button id="close-json" class="닫기버튼">×</button></div><pre id="json-output"></pre></dialog>
+<dialog id="json-dialog" class="JSON대화상자"><div class="대화헤더"><div><span class="메타라벨">씬 문서</span><h2>Scene JSON</h2></div><button id="close-json" class="닫기버튼" aria-label="닫기">×</button></div><pre id="json-output"></pre></dialog>
 <div id="toast" class="토스트" role="status" aria-live="polite"></div>
 <script type="module" src="/src/app.js"></script>
 </body>

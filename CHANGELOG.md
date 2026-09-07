@@ -1,38 +1,43 @@
 # Changelog
 
+## v1.2.1 — 2026-09-07
+
+### Camera consistency
+- `렌더 뷰`를 `카메라 프리뷰`로 재정의했습니다.
+- 카메라 프리뷰와 영상 Export가 동일한 `evaluateCameraAtTime()` / `applyTime()` 경로를 사용하도록 고정했습니다.
+- 20초 master timeline의 shot cut boundary를 동일 evaluator가 처리합니다.
+- 공식 추격 장면의 카메라를 임의 world 좌표 대신 배우 blocking과 진행 방향 기준 local offset으로 계산합니다.
+- Shot 01을 낮은 rear 3/4 wide로 변경했습니다.
+- Shot 02는 side track, Shot 03은 rear follow, Shot 04는 between push archetype을 사용합니다.
+- 편집용 director camera도 초기 배우 위치를 기준으로 프레이밍합니다.
+- 카메라 프리뷰에서 컷 직후 shot / lens / camera archetype overlay를 표시합니다.
+
+### UI polish
+- 제공된 `ui-polish` 원칙과 Lamborghini-inspired design token의 surface-layering 개념을 참고해 UI를 재구성했습니다.
+- 배경 / workspace / panel / elevated / interactive의 5단계 dark surface hierarchy를 도입했습니다.
+- depth를 heavy shadow 대신 surface 밝기 차이와 1px border 중심으로 표현합니다.
+- core Korean UI typography를 10–15px 계층으로 재설계했습니다.
+- 한글 section label의 과도한 uppercase-style letter spacing을 제거했습니다.
+- viewport current shot, timeline, inspector 순으로 시각적 우선순위를 재조정했습니다.
+- lime은 primary/current, cyan은 actor/action, purple은 camera 의미로 제한했습니다.
+- 편집 뷰에서는 `장면 만들기`, 카메라 프리뷰에서는 `프리비즈 영상 렌더`만 primary accent가 되도록 CTA hierarchy를 수정했습니다.
+
+### Verification
+- JavaScript syntax check: PASS
+- Automated tests: 14/14 PASS
+- 480-frame / 24fps camera transform finite check: PASS
+- Shot boundary 4.000s cut regression: PASS
+- Preview/export shared evaluator contract: PASS
+- UI surface/token contract: PASS
+- Static 1710×910 UI hierarchy review generated
+
+### Environment note
+- 현재 작업 컨테이너의 headless Chromium graphics 초기화 문제로 실제 Chromium runtime screenshot은 생성하지 못했습니다. Production/Vercel에서의 Three.js visual smoke test는 배포 후 확인 대상입니다.
+
 ## v1.2.0 — 2026-09-07
 
-### 핵심 방향 변경
-- 제품 중심을 자연어 해석에서 **실제 프리비즈 동작과 영상 렌더링**으로 이동했습니다.
-- 외부 LLM은 필수 경로에서 제거하고, 지원 가능한 명령만 추출하는 로컬 Previz Director를 기본으로 사용합니다.
-
-### 추가
-- 20초 마스터 시퀀스 / 24 FPS 타임라인
-- 공식 `밤의 도로 추격` 4샷 데모
-- 배우 액션 트랙: Idle / Walk / Run / Chase / Turn / Stop
-- 실제 root motion 기반 배우 이동
-- 프로시저럴 프리비즈 마네킹과 달리기/걷기 limb swing
-- 카메라: Static / Dolly In / Dolly Out / Track Follow / Track Between / Orbit / Handheld Follow
-- 편집 뷰 / 렌더 뷰 분리
-- 1920×1080 영상 렌더 파이프라인
-- WebCodecs + Mediabunny MP4 우선 경로
-- MediaRecorder MP4/WebM fallback
-- 1200×630 `og.png`
-- Open Graph / X(Twitter) large-image 메타태그
-- 마스터 타임라인의 Shot / Actor / Camera tracks
-
-### 변경
-- `actor-neutral.glb` 외형에 의존하지 않고 렌더러 내부의 일관된 중립 마네킹을 기본 표시로 사용합니다.
-- 자연어 입력은 심층 의미 분석 대신 장소, 시간, 동작, 추격 관계, 카메라, 렌즈를 지원 범위에서만 추출합니다.
-- 기본 Node 엔진 요구 버전을 22 이상으로 변경했습니다.
-- AI Director 상태 UI를 `프리비즈 디렉터 · 로컬`로 변경했습니다.
-
-### 검증
-- JavaScript syntax check PASS
-- Unit tests 8/8 PASS
-- Canvas browser smoke test PASS
-- 브라우저 page errors 0
-- 20초 재생 / 샷 자동 전환 PASS
-- 자연어 복도/50mm/달리기/트래킹 재생성 PASS
-- 영상 파일 실제 생성 PASS
-- 검증 영상: H.264 MP4, 1920×1080, 약 19.99초, 약 24fps
+- 20초 master sequence와 actor/camera animation 도입
+- 1920×1080 / 24fps browser video export 도입
+- 편집/출력 view 분리의 첫 버전
+- 공식 밤의 도로 추격 demo 추가
+- OG image / social metadata 추가
