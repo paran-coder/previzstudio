@@ -1,64 +1,60 @@
-# Previz Studio v1.2.1
+# Previz Studio v1.2.2
 
-영화·광고 제작자와 AI 영상 크리에이터를 위한 웹 기반 3D 프리비즈 도구입니다. 자연어는 초기 블로킹 입력 수단이며, 제품의 핵심 결과물은 **인물 동작 + 카메라 앵글/무빙 + 렌더된 프리비즈 레퍼런스**입니다.
+영화·광고 제작자와 AI 영상 크리에이터를 위한 웹 기반 3D 프리비즈 도구입니다.
 
-## v1.2.1 핵심 패치
+v1.2.2는 새 기능 추가보다 **카메라 프리뷰와 출력의 프레이밍 일치**, **첫 접속 편집 카메라**, **Production UI 가독성**을 안정화하는 패치입니다.
 
-### Camera Preview = Export
-- `편집 뷰`: 공간 확인용 자유 director camera
-- `카메라 프리뷰`: 최종 영상과 동일한 shot camera
-- Preview와 Export는 동일한 master-time `evaluateCameraAtTime()`을 사용합니다.
-- shot cut도 20초 master timeline의 동일한 boundary를 사용합니다.
+## v1.2.2 핵심 변경
 
-### Blocking-derived camera
-공식 추격 장면의 카메라는 arbitrary world coordinate가 아니라 actor blocking과 진행 방향을 기준으로 계산됩니다.
+- `카메라 프리뷰 = 최종 출력 프레임` 계약 강화
+  - 프로젝트 출력 비율(기본 1920×1080, 16:9)을 카메라 프리뷰에 고정
+  - 넓거나 좁은 UI 패널에서는 letterbox/pillarbox 처리
+  - Shot Camera의 aspect를 UI 패널 크기로 덮어쓰지 않음
+  - PNG / MP4 / WebM 출력도 같은 Shot Camera 프레이밍 사용
+- 첫 접속 `편집 뷰` 카메라 개선
+  - 배우 시작 위치, 초기 이동 방향, 경로 범위를 기반으로 자동 프레이밍
+  - 낮고 가려지는 시점 대신 3/4 상단 오버뷰
+  - 사용자가 직접 카메라를 움직인 뒤에는 자동 재프레이밍하지 않음
+- UI hierarchy 보정
+  - 패널/타임라인/카드 surface 명도 차이 확대
+  - 한글 UI 기본 크기 상향
+  - 현재 샷과 타임라인 가독성 강화
 
-1. Rear 3/4 Wide — 24mm
-2. Side Tracking — 35mm
-3. Rear Handheld Follow — 50mm
-4. Between Tracking Push — 35mm
+## 공식 회귀 장면
 
-### UI hierarchy overhaul
-제공된 UI polish 원칙과 dark surface token reference를 참고해 다음을 적용했습니다.
+20초 야간 도로 추격 장면:
 
-- 5단계 dark surface hierarchy
-- panel/title/body/metadata typography 분리
-- timeline clip 10px 이상
-- current shot title 13px
-- panel title 12px
-- accent color 역할 제한
-- 편집/프리뷰 상태에 따른 primary CTA 전환
+1. 0–4초 — 후방 3/4 와이드
+2. 4–9초 — 측면 트래킹
+3. 9–14초 — 추격자 후방 핸드헬드
+4. 14–20초 — 두 인물 사이 트래킹/푸시
 
-## 기본 출력
-- 1920 × 1080
-- 24fps
-- 20초 공식 demo
-- MP4 우선 / 브라우저 호환 fallback
-- shot start/mid/end PNG
-- Scene JSON / Reference Manifest JSON
+기본 출력은 `1920×1080 / 24 FPS / 20초`입니다.
 
 ## 실행
+
 ```bash
 npm start
 ```
-브라우저에서 `http://127.0.0.1:4173`을 엽니다.
 
-Three.js를 강제로 우회해 Canvas validation renderer를 사용하려면:
+브라우저에서:
+
 ```text
-http://127.0.0.1:4173/?renderer=canvas
+http://127.0.0.1:4173
 ```
 
-## 테스트
+## 검증
+
 ```bash
 npm run check
 npm test
 ```
 
-현재 자동 검증: **14/14 PASS**.
+현재 자동 검증: **18/18 PASS**. Production에서는 카메라 프리뷰와 렌더 MP4의 대표 프레임을 다시 비교합니다.
 
-## 배포 후 확인할 항목
-작업 컨테이너에서는 headless Chromium graphics initialization이 동작하지 않아 production Three.js visual smoke test는 배포 후 확인해야 합니다. 특히 다음을 확인하십시오.
+## 설계 원칙
 
-1. 카메라 프리뷰 0s / 4s / 9s / 14s cut
-2. 다운로드한 20초 MP4의 같은 시점 구도
-3. 패널 surface separation과 한글 text hierarchy
+- 편집 뷰는 공간 작업용 자유 시점입니다.
+- 카메라 프리뷰는 최종 출력 프레임입니다.
+- 자연어는 장면 설정 단축키이며 제품의 핵심은 실제 blocking / action / camera / render입니다.
+- 외부 AI는 핵심 실행 경로에 필요하지 않습니다.

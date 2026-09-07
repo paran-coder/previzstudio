@@ -75,7 +75,7 @@ function setView(view){
   els.app.dataset.view=currentView;
   $$('[data-view]').forEach(b=>b.classList.toggle('활성',b.dataset.view===currentView));
   engine?.setViewMode(currentView);
-  if(currentView==='preview') els.viewStatus.innerHTML='<strong>카메라 프리뷰</strong><span>최종 영상과 동일한 카메라입니다.</span>';
+  if(currentView==='preview') els.viewStatus.innerHTML='<strong>카메라 프리뷰 · 16:9 OUTPUT</strong><span>최종 영상과 동일한 프레임입니다.</span>';
   else els.viewStatus.innerHTML='<strong>편집 작업 시점</strong><span>최종 출력 화면이 아닙니다.</span>';
   syncShotUI(engine?.time||0);
 }
@@ -88,7 +88,7 @@ async function loadScene(doc){
 }
 
 function selectedShot(){return sceneDoc.shots[currentShotIndex];}
-function referenceManifest(){return {format:'previz-reference-pack',version:'1.2.1',sourcePrompt:sceneDoc.sourcePrompt,sequence:sceneDoc.sequence,continuityKey:sceneDoc.scene.continuityKey,environment:sceneDoc.scene.environment,actors:sceneDoc.actors.map(a=>({id:a.id,role:a.role,actions:a.actions})),shots:sceneDoc.shots.map((s,i)=>({id:s.id,title:s.title,start:s.start,end:s.end,lens:s.camera.lens,movement:s.camera.movement,archetype:s.camera.archetype||'free',referenceFrames:[['start',s.start],['mid',(s.start+s.end)/2],['end',Math.max(s.start,s.end-1/sceneDoc.sequence.fps)]].map(([role,time])=>({role,time,suggestedFilename:`previz-shot${String(i+1).padStart(2,'0')}-${role}.png`}))})),referenceIntent:'카메라 구도, 인물 동선, 움직임과 샷 연속성을 AI 영상 생성에 전달한다.'};}
+function referenceManifest(){return {format:'previz-reference-pack',version:'1.2.2',sourcePrompt:sceneDoc.sourcePrompt,sequence:sceneDoc.sequence,continuityKey:sceneDoc.scene.continuityKey,environment:sceneDoc.scene.environment,actors:sceneDoc.actors.map(a=>({id:a.id,role:a.role,actions:a.actions})),shots:sceneDoc.shots.map((s,i)=>({id:s.id,title:s.title,start:s.start,end:s.end,lens:s.camera.lens,movement:s.camera.movement,archetype:s.camera.archetype||'free',referenceFrames:[['start',s.start],['mid',(s.start+s.end)/2],['end',Math.max(s.start,s.end-1/sceneDoc.sequence.fps)]].map(([role,time])=>({role,time,suggestedFilename:`previz-shot${String(i+1).padStart(2,'0')}-${role}.png`}))})),referenceIntent:'카메라 구도, 인물 동선, 움직임과 샷 연속성을 AI 영상 생성에 전달한다.'};}
 async function captureRole(role){const shot=selectedShot(),t=role==='start'?shot.start:role==='mid'?(shot.start+shot.end)/2:Math.max(shot.start,shot.end-1/sceneDoc.sequence.fps);const blob=await engine.captureAtTime(t);if(!blob)return showToast('프레임 캡처 실패');downloadBlob(blob,`previz-shot${String(currentShotIndex+1).padStart(2,'0')}-${role}.png`);showToast(`${role} PNG를 저장했습니다.`);}
 
 els.generate.addEventListener('click',async()=>{if(rendering)return;const prompt=els.prompt.value.trim();if(!prompt)return;els.generate.disabled=true;els.generate.querySelector('span').textContent='블로킹 중…';try{await loadScene(directPromptFallback(prompt));showToast('표현 가능한 동작과 카메라를 프리비즈로 만들었습니다.');}finally{els.generate.disabled=false;els.generate.querySelector('span').textContent='장면 만들기';}});
@@ -98,14 +98,14 @@ els.reset.addEventListener('click',()=>engine.reset());
 els.timeline.addEventListener('input',()=>engine.seek(Number(els.timeline.value)));
 $$('[data-view]').forEach(button=>button.addEventListener('click',()=>setView(button.dataset.view)));
 els.lens.addEventListener('change',()=>{const next=cloneSceneDocument(sceneDoc),v=Math.max(18,Math.min(120,Number(els.lens.value)||35));next.shots[currentShotIndex].camera.lens=v;sceneDoc=next;engine.document=sceneDoc;engine.applyTime(engine.time);syncShotUI(engine.time);});
-$('#ref-start').addEventListener('click',()=>captureRole('start'));$('#ref-mid').addEventListener('click',()=>captureRole('mid'));$('#ref-end').addEventListener('click',()=>captureRole('end'));$('#ref-manifest').addEventListener('click',()=>downloadBlob(new Blob([JSON.stringify(referenceManifest(),null,2)],{type:'application/json'}),'previz-reference-pack-v1.2.1.json'));
-els.showJson.addEventListener('click',()=>{els.json.textContent=JSON.stringify(sceneDoc,null,2);els.dialog.showModal();});els.closeJson.addEventListener('click',()=>els.dialog.close());els.dialog.addEventListener('click',e=>{if(e.target===els.dialog)els.dialog.close();});els.exportJson.addEventListener('click',()=>downloadBlob(new Blob([JSON.stringify(sceneDoc,null,2)],{type:'application/json'}),'previz-scene-v1.2.1.json'));
+$('#ref-start').addEventListener('click',()=>captureRole('start'));$('#ref-mid').addEventListener('click',()=>captureRole('mid'));$('#ref-end').addEventListener('click',()=>captureRole('end'));$('#ref-manifest').addEventListener('click',()=>downloadBlob(new Blob([JSON.stringify(referenceManifest(),null,2)],{type:'application/json'}),'previz-reference-pack-v1.2.2.json'));
+els.showJson.addEventListener('click',()=>{els.json.textContent=JSON.stringify(sceneDoc,null,2);els.dialog.showModal();});els.closeJson.addEventListener('click',()=>els.dialog.close());els.dialog.addEventListener('click',e=>{if(e.target===els.dialog)els.dialog.close();});els.exportJson.addEventListener('click',()=>downloadBlob(new Blob([JSON.stringify(sceneDoc,null,2)],{type:'application/json'}),'previz-scene-v1.2.2.json'));
 
 els.renderVideo.addEventListener('click',async()=>{
   if(rendering)return;rendering=true;els.renderVideo.disabled=true;engine.setPlaying(false);setView('preview');els.renderBar.style.width='0%';els.renderText.textContent='렌더 준비 중…';
-  try{const result=await exportSequenceVideo(engine,sceneDoc,(p,label)=>{els.renderBar.style.width=`${Math.round(p*100)}%`;els.renderText.textContent=`${label} · ${Math.round(p*100)}%`;});const ext=result.format==='mp4'?'mp4':'webm';downloadBlob(result.blob,`previz-road-chase-20s-v1.2.1.${ext}`);els.renderText.textContent=`완료 · ${ext.toUpperCase()} · ${(result.blob.size/1024/1024).toFixed(1)} MB`;showToast(result.format==='mp4'?'프리비즈 MP4를 저장했습니다.':'MP4 인코더가 없어 WebM으로 저장했습니다.',3500);}
+  try{const result=await exportSequenceVideo(engine,sceneDoc,(p,label)=>{els.renderBar.style.width=`${Math.round(p*100)}%`;els.renderText.textContent=`${label} · ${Math.round(p*100)}%`;});const ext=result.format==='mp4'?'mp4':'webm';downloadBlob(result.blob,`previz-road-chase-20s-v1.2.2.${ext}`);els.renderText.textContent=`완료 · ${ext.toUpperCase()} · ${(result.blob.size/1024/1024).toFixed(1)} MB`;showToast(result.format==='mp4'?'프리비즈 MP4를 저장했습니다.':'MP4 인코더가 없어 WebM으로 저장했습니다.',3500);}
   catch(error){console.error(error);els.renderText.textContent=`렌더 실패 · ${error.message||error}`;showToast('영상 렌더에 실패했습니다.',3000);}
   finally{rendering=false;els.renderVideo.disabled=false;}
 });
 
-engine=await initEngine();await loadScene(sceneDoc);window.__PREVIZ__={getScene:()=>sceneDoc,getEngine:()=>engine,loadPrompt:async p=>{els.prompt.value=p;await loadScene(directPromptFallback(p));},setView,exportSequenceVideo:()=>exportSequenceVideo(engine,sceneDoc)};showToast('Previz Studio v1.2.1 · 카메라 일치 패치 준비 완료');
+engine=await initEngine();await loadScene(sceneDoc);window.__PREVIZ__={getScene:()=>sceneDoc,getEngine:()=>engine,loadPrompt:async p=>{els.prompt.value=p;await loadScene(directPromptFallback(p));},setView,exportSequenceVideo:()=>exportSequenceVideo(engine,sceneDoc)};showToast('Previz Studio v1.2.2 · 출력 프레임 안정화 준비 완료');

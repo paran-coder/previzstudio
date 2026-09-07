@@ -5,7 +5,7 @@ import { validateSceneDocument } from '../src/scene-schema.js';
 
 test('밤의 도로 추격 프롬프트를 20초 4샷 시퀀스로 만든다',()=>{
   const doc=directPromptFallback('밤의 도로. 한 사람이 도망치고 다른 사람이 뒤따라 쫓아간다. 카메라는 역동적으로 두 사람 사이를 오가며 추격한다.');
-  assert.equal(doc.version,'1.2.1');
+  assert.equal(doc.version,'1.2.2');
   assert.equal(doc.sequence.duration,20);
   assert.equal(doc.sequence.fps,24);
   assert.equal(doc.sequence.width,1920);

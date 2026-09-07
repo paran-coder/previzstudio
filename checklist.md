@@ -1,4 +1,4 @@
-# Previz Studio v1.2.1 — Checklist
+# Previz Studio v1.2.2 — Checklist
 
 ## Phase 0 — Required docs
 - [x] `context-notes.md` updated before implementation
@@ -6,43 +6,43 @@
 - [x] `README.md` updated before implementation
 - [x] `User manual.md` updated before implementation
 
-## Phase 1 — Camera consistency
-- [x] Shared camera evaluator for preview/export
-- [x] Camera Preview auto-cuts on master shot boundaries
-- [x] Export uses the exact same `applyTime()` evaluator path
-- [x] Removed arbitrary shot-01 camera world coordinates
-- [x] Shot cameras composed from actor blocking + travel direction
-- [x] Short shot/lens/camera overlay on cuts
-- [x] Regression tests for cut boundaries/camera transform
-- [x] Full 480-frame finite camera transform check
+## Phase 1 — Output framing consistency
+- [x] Canonical output aspect derived from sequence dimensions
+- [x] Camera Preview rendered inside fixed output-aspect stage
+- [x] Shot Camera aspect never follows arbitrary UI viewport ratio
+- [x] Edit camera keeps independent responsive aspect
+- [x] PNG capture uses canonical output framing
+- [x] MP4/WebM export uses canonical output framing
+- [x] Export restore returns to correct preview/edit size
+- [x] Preview/export regression tests added
 
-## Phase 2 — UI hierarchy / surfaces
-- [x] Layered dark surfaces (background/workspace/panel/elevated/interactive)
-- [x] Reduced shadow reliance and strengthened 1px surface borders
-- [x] Rebuilt typography hierarchy
-- [x] Removed Korean micro-label over-tracking
-- [x] Increased timeline clip/track readability
-- [x] Made current shot the primary inspector information
-- [x] De-emphasized renderer technical status
-- [x] Separated primary/secondary CTA hierarchy by view state
-- [x] Improved active/focus states without decorative noise
-- [x] Camera guide color aligned to camera-purple semantic
+## Phase 2 — Initial Edit View camera
+- [x] Scene bounds / travel direction overview calculation
+- [x] 3/4 elevated initial angle
+- [x] Blocking + early travel path visible
+- [x] Avoid dominant foreground road/building obstruction
+- [x] User orbit/zoom marks camera as manually adjusted
+- [x] Scene regeneration intentionally reframes once
+- [x] Canvas fallback matches overview intent
 
-## Phase 3 — View semantics
-- [x] Renamed output view to `카메라 프리뷰`
-- [x] Edit view visibly identified as workspace/non-output view
-- [x] Camera Preview and export share master-time camera evaluation
-- [x] Render CTA becomes primary only in Camera Preview
+## Phase 3 — Production UI hierarchy
+- [x] Stronger dark surface separation
+- [x] Side panels visually distinct from workspace
+- [x] Timeline elevated as second-priority module
+- [x] Typography target increased for Korean UI
+- [x] Inspector current-shot hierarchy strengthened
+- [x] CTA state hierarchy preserved
+- [x] Camera Preview stage/letterbox visually clear
 
 ## Phase 4 — Verification
 - [x] Syntax checks pass
-- [x] Unit/contract tests pass — 14/14
-- [x] 20s / 24fps shot cut timing regression passes
-- [x] Preview/export evaluator contract passes
-- [x] Static 1710×910 UI hierarchy review generated
-- [ ] Actual Chromium/Three.js visual smoke test in this container (graphics init unavailable)
-- [ ] Production/Vercel visual smoke test after deployment
-- [ ] Production 20s MP4 rerender after deployment
+- [x] Unit/contract tests pass
+- [x] 20s shot timing regression passes
+- [x] Shot camera aspect regression passes
+- [x] Initial Edit View framing regression passes
+- [x] Representative preview/export frame contract passes
+- [ ] Static 1920x1080 UI review generated (container Chromium capture unavailable)
+- [ ] Production rerender verification after user deploy
 
 ## Result
-Core patch implementation complete. Production visual/export re-verification remains after deployment.
+Core v1.2.2 implementation complete. Production frame-by-frame verification remains after user deployment.

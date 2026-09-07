@@ -1,4 +1,4 @@
-import { evaluateActorAtTime, evaluateCameraAtTime } from './sequence.js';
+import { evaluateActorAtTime, evaluateCameraAtTime, deriveEditOverview, fitAspectRect, outputAspect } from './sequence.js';
 
 const THREE_VERSION = '0.185.1';
 const clamp = (v,a,b)=>Math.min(b,Math.max(a,v));
@@ -24,7 +24,7 @@ export class ThreeSceneEngine {
     this.world=new T.Group(); this.guides=new T.Group(); this.scene.add(this.world,this.guides);
     this.directorCamera=new T.PerspectiveCamera(43,1,.05,180); this.shotCamera=new T.PerspectiveCamera(50,1,.05,180);
     this.directorTarget=new T.Vector3(0,1.1,-8); this.orbitYaw=.72; this.orbitPitch=.20; this.orbitRadius=17;
-    this.dragging=false; this.dragStart=null;
+    this.dragging=false; this.dragStart=null; this.directorUserAdjusted=false; this.stageRect={width:1,height:1,left:0,top:0};
     this.renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,powerPreference:'high-performance'});
     this.renderer.setClearColor(0x070a0e,1); this.renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
     this.renderer.shadowMap.enabled=true; this.renderer.shadowMap.type=T.PCFSoftShadowMap;
@@ -39,13 +39,31 @@ export class ThreeSceneEngine {
 
   bindControls(){
     const c=this.canvas;
-    c.addEventListener('pointerdown',e=>{if(this.viewMode!=='edit')return;this.dragging=true;this.dragStart={x:e.clientX,y:e.clientY,yaw:this.orbitYaw,pitch:this.orbitPitch};c.setPointerCapture?.(e.pointerId)});
+    c.addEventListener('pointerdown',e=>{if(this.viewMode!=='edit')return;this.directorUserAdjusted=true;this.dragging=true;this.dragStart={x:e.clientX,y:e.clientY,yaw:this.orbitYaw,pitch:this.orbitPitch};c.setPointerCapture?.(e.pointerId)});
     c.addEventListener('pointermove',e=>{if(!this.dragging||!this.dragStart)return;this.orbitYaw=this.dragStart.yaw-(e.clientX-this.dragStart.x)*.006;this.orbitPitch=clamp(this.dragStart.pitch+(e.clientY-this.dragStart.y)*.004,.08,1.05)});
     const stop=()=>{this.dragging=false;this.dragStart=null}; c.addEventListener('pointerup',stop);c.addEventListener('pointercancel',stop);
-    c.addEventListener('wheel',e=>{if(this.viewMode!=='edit')return;e.preventDefault();this.orbitRadius=clamp(this.orbitRadius+Math.sign(e.deltaY)*1,8,42)},{passive:false});
+    c.addEventListener('wheel',e=>{if(this.viewMode!=='edit')return;e.preventDefault();this.directorUserAdjusted=true;this.orbitRadius=clamp(this.orbitRadius+Math.sign(e.deltaY)*1,8,42)},{passive:false});
   }
-  resize(){ if(this.exportState)return; const w=Math.max(1,this.container.clientWidth),h=Math.max(1,this.container.clientHeight); this.renderer.setSize(w,h,false); this.updateAspect(w,h); }
-  updateAspect(w,h){ for(const cam of [this.directorCamera,this.shotCamera]){cam.aspect=w/h;cam.updateProjectionMatrix();} }
+  getOutputAspect(){return outputAspect(this.document);}
+  applyCanvasRect(rect){
+    const c=this.canvas;
+    c.style.position='absolute';
+    c.style.width=`${rect.width}px`; c.style.height=`${rect.height}px`;
+    c.style.left=`${rect.left}px`; c.style.top=`${rect.top}px`;
+    this.stageRect=rect;
+  }
+  updateCameraAspects(viewportW,viewportH){
+    this.directorCamera.aspect=viewportW/Math.max(1,viewportH); this.directorCamera.updateProjectionMatrix();
+    this.shotCamera.aspect=this.getOutputAspect(); this.shotCamera.updateProjectionMatrix();
+  }
+  resize(){
+    if(this.exportState)return;
+    const w=Math.max(1,this.container.clientWidth),h=Math.max(1,this.container.clientHeight);
+    const rect=this.viewMode==='preview'?fitAspectRect(w,h,this.getOutputAspect()):{width:w,height:h,left:0,top:0};
+    this.renderer.setSize(Math.max(1,Math.round(rect.width)),Math.max(1,Math.round(rect.height)),false);
+    this.applyCanvasRect(rect);
+    this.updateCameraAspects(w,h);
+  }
   disposeObject(obj){obj.geometry?.dispose?.();const m=obj.material;if(Array.isArray(m))m.forEach(x=>x.dispose?.());else m?.dispose?.();obj.material?.map?.dispose?.();}
   clearWorld(){for(const g of [this.world,this.guides]){g.traverse(o=>this.disposeObject(o));g.clear();}this.actorRigs.clear();}
   mat(color,rough=.72,metal=.05){return new this.THREE.MeshStandardMaterial({color,roughness:rough,metalness:metal});}
@@ -84,7 +102,7 @@ export class ThreeSceneEngine {
     const T=this.THREE,g=new T.Group(),col=index%2?0x48515a:0x38424b;const body=new T.Mesh(new T.BoxGeometry(3.7,.72,1.7),this.mat(col,.45,.18));body.position.y=.65;body.castShadow=true;g.add(body);const cabin=new T.Mesh(new T.BoxGeometry(1.9,.58,1.5),this.mat(0x28313a,.32,.12));cabin.position.set(.15,1.18,0);cabin.castShadow=true;g.add(cabin);for(const x of [-1.25,1.25])for(const z of [-.82,.82]){const w=new T.Mesh(new T.CylinderGeometry(.32,.32,.2,14),this.mat(0x111416,.95));w.rotation.x=Math.PI/2;w.position.set(x,.35,z);g.add(w);}g.position.set(...pos);g.rotation.y=rot;this.world.add(g);return g;
   }
 
-  async loadDocument(doc){this.document=doc;this.time=0;this.playing=false;this.clearWorld();this.buildWorld();const pts=doc.actors.map(a=>a.position);if(pts.length){const cx=pts.reduce((n,p)=>n+p[0],0)/pts.length,cz=pts.reduce((n,p)=>n+p[2],0)/pts.length;this.directorTarget.set(cx,1.15,cz+4);this.orbitYaw=.72;this.orbitPitch=.20;this.orbitRadius=17;}this.buildGuides();this.applyTime(0);}
+  async loadDocument(doc){this.document=doc;this.time=0;this.playing=false;this.directorUserAdjusted=false;this.clearWorld();this.buildWorld();this.frameEditOverview();this.buildGuides();this.applyTime(0);this.resize();}
   buildWorld(){
     const T=this.THREE,env=this.document.scene.environment;this.scene.background=new T.Color(env.time==='night'?0x06090d:0x8d9aa7);this.scene.fog=new T.Fog(env.time==='night'?0x06090d:0x8d9aa7,28,88);
     const hemi=new T.HemisphereLight(env.time==='night'?0x7f9abd:0xdbe8f5,0x18130f,env.time==='night'?.55:1.6);this.world.add(hemi);
@@ -100,17 +118,38 @@ export class ThreeSceneEngine {
   }
   updateLabels(){this.guides.children.filter(o=>o.isSprite&&Number.isInteger(o.userData.actorIndex)).forEach(sprite=>{const actor=this.document.actors[sprite.userData.actorIndex],state=evaluateActorAtTime(this.document,actor,this.time);sprite.position.set(state.position[0],state.position[1]+2.85,state.position[2]);});}
   applyActorPose(actor,state){const rig=this.actorRigs.get(actor.id);if(!rig)return;rig.root.position.set(state.position[0],state.position[1]+state.bob,state.position[2]);rig.root.rotation.y=state.rotationY;rig.torsoPivot.rotation.x=-state.lean;rig.legL.rotation.x=state.stride;rig.legR.rotation.x=-state.stride;rig.armL.rotation.x=-state.stride*.75;rig.armR.rotation.x=state.stride*.75;}
+  frameEditOverview(){
+    if(!this.document)return;
+    const view=deriveEditOverview(this.document),T=this.THREE;
+    this.directorTarget.set(...view.target);
+    const offset=new T.Vector3(view.position[0]-view.target[0],view.position[1]-view.target[1],view.position[2]-view.target[2]);
+    const radius=Math.max(1,offset.length());
+    this.orbitRadius=radius;
+    this.orbitPitch=Math.asin(clamp(offset.y/radius,-.98,.98));
+    this.orbitYaw=Math.atan2(offset.x,offset.z);
+    this.updateDirectorCamera();
+  }
   applyTime(time){if(!this.document)return;this.time=clamp(time,0,this.document.sequence.duration);for(const actor of this.document.actors)this.applyActorPose(actor,evaluateActorAtTime(this.document,actor,this.time));this.updateLabels();const c=evaluateCameraAtTime(this.document,this.time);this.shotCamera.position.set(...c.position);this.shotCamera.lookAt(new this.THREE.Vector3(...c.target));this.shotCamera.fov=2*Math.atan(36/(2*c.lens))*180/Math.PI;this.shotCamera.updateProjectionMatrix();this.activeShot=c.shot;return c;}
   updateDirectorCamera(){const cp=Math.cos(this.orbitPitch);this.directorCamera.position.set(this.directorTarget.x+Math.sin(this.orbitYaw)*cp*this.orbitRadius,this.directorTarget.y+Math.sin(this.orbitPitch)*this.orbitRadius,this.directorTarget.z+Math.cos(this.orbitYaw)*cp*this.orbitRadius);this.directorCamera.lookAt(this.directorTarget);}
-  setViewMode(mode){this.viewMode=mode==='preview'?'preview':'edit';this.guides.visible=this.viewMode==='edit';}
+  setViewMode(mode){this.viewMode=mode==='preview'?'preview':'edit';this.guides.visible=this.viewMode==='edit';if(!this.exportState)this.resize();}
   setPlaying(v){this.playing=Boolean(v);}
   seek(t){this.playing=false;this.applyTime(t);this.onTime?.(this.time,false,this.activeShot);}
   selectShot(index){const shot=this.document?.shots?.[index];if(shot)this.seek(shot.start+.001);}
   reset(){this.seek(0);}
   loop(now){const dt=Math.min((now-this.lastTime)/1000,.08);this.lastTime=now;if(this.playing&&this.document){let next=this.time+dt;if(next>=this.document.sequence.duration){next=this.document.sequence.duration;this.playing=false;}this.applyTime(next);this.onTime?.(this.time,this.playing,this.activeShot);}this.updateDirectorCamera();this.renderer.render(this.scene,this.viewMode==='preview'?this.shotCamera:this.directorCamera);}
-  async captureAtTime(time){const oldMode=this.viewMode,oldTime=this.time;this.setViewMode('preview');this.applyTime(time);this.renderer.render(this.scene,this.shotCamera);const blob=await new Promise(r=>this.canvas.toBlob(r,'image/png'));this.setViewMode(oldMode);this.applyTime(oldTime);return blob;}
-  beginExport(width,height){if(this.exportState)return;this.exportState={width:this.container.clientWidth,height:this.container.clientHeight,pixelRatio:this.renderer.getPixelRatio(),mode:this.viewMode,time:this.time,playing:this.playing};this.playing=false;this.renderer.setPixelRatio(1);this.renderer.setSize(width,height,false);this.updateAspect(width,height);this.setViewMode('preview');}
+  async captureAtTime(time){const w=this.document?.sequence?.width||1920,h=this.document?.sequence?.height||1080;this.beginExport(w,h);try{this.renderExportFrame(time);return await new Promise(r=>this.canvas.toBlob(r,'image/png'));}finally{this.endExport();}}
+  beginExport(width,height){
+    if(this.exportState)return;
+    this.exportState={pixelRatio:this.renderer.getPixelRatio(),mode:this.viewMode,time:this.time,playing:this.playing};
+    this.playing=false; this.viewMode='preview'; this.guides.visible=false;
+    this.renderer.setPixelRatio(1); this.renderer.setSize(width,height,false);
+    this.shotCamera.aspect=width/Math.max(1,height); this.shotCamera.updateProjectionMatrix();
+  }
   renderExportFrame(time){this.applyTime(time);this.renderer.render(this.scene,this.shotCamera);}
-  endExport(){if(!this.exportState)return;const s=this.exportState;this.renderer.setPixelRatio(s.pixelRatio);this.renderer.setSize(Math.max(1,s.width),Math.max(1,s.height),false);this.updateAspect(Math.max(1,s.width),Math.max(1,s.height));this.setViewMode(s.mode);this.applyTime(s.time);this.playing=s.playing;this.exportState=null;}
+  endExport(){
+    if(!this.exportState)return;
+    const s=this.exportState; this.renderer.setPixelRatio(s.pixelRatio); this.exportState=null;
+    this.viewMode=s.mode; this.guides.visible=this.viewMode==='edit'; this.applyTime(s.time); this.playing=s.playing; this.resize();
+  }
   dispose(){this.renderer.setAnimationLoop(null);this.resizeObserver.disconnect();this.clearWorld();this.renderer.dispose();}
 }

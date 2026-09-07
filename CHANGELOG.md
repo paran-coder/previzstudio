@@ -1,5 +1,26 @@
 # Changelog
 
+## v1.2.2 — 2026-09-07
+
+### Fixed
+- Camera Preview now uses the canonical project output aspect instead of inheriting the UI viewport ratio.
+- 1920×1080 projects display as a centered 16:9 output stage with letterbox/pillarbox space when required.
+- Shot Camera aspect is isolated from Edit View resize behavior.
+- PNG capture now uses the same canonical output buffer path as video export.
+- Export restore returns to the correct Edit/Preview canvas sizing.
+- Initial Edit View camera now derives a three-quarter elevated overview from actor blocking and early travel bounds instead of fixed orbit values.
+
+### UI
+- Increased dark-surface separation for workspace, side panels, timeline, and elevated cards.
+- Increased Korean UI typography scale for panel titles, inspector, timeline, buttons, and metadata.
+- Camera Preview status explicitly identifies the 16:9 output frame.
+
+### Verification
+- Syntax checks pass.
+- Automated tests: 18/18 PASS.
+- Added output-stage aspect and initial edit-overview regression tests.
+- Container Chromium visual capture remains unavailable; production visual comparison is required after deployment.
+
 ## v1.2.1 — 2026-09-07
 
 ### Camera consistency

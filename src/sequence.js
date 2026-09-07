@@ -146,6 +146,65 @@ export function evaluateCameraAtTime(doc, time) {
   return { shot, progress:p, position, target, lens:c.lens, archetype };
 }
 
+export function outputAspect(doc) {
+  const w = Number(doc?.sequence?.width) || 16;
+  const h = Number(doc?.sequence?.height) || 9;
+  return w / Math.max(1, h);
+}
+
+export function fitAspectRect(width, height, aspect) {
+  const w = Math.max(1, Number(width) || 1);
+  const h = Math.max(1, Number(height) || 1);
+  const a = Math.max(.1, Number(aspect) || (16/9));
+  if (w / h > a) {
+    const stageWidth = h * a;
+    return { width:stageWidth, height:h, left:(w-stageWidth)/2, top:0 };
+  }
+  const stageHeight = w / a;
+  return { width:w, height:stageHeight, left:0, top:(h-stageHeight)/2 };
+}
+
+export function deriveEditOverview(doc) {
+  const actors = doc?.actors || [];
+  if (!actors.length) return { position:[7.5,8.5,-15], target:[0,1,0], forward:[0,0,1] };
+  const duration = Number(doc?.sequence?.duration) || 20;
+  const sampleTime = Math.min(7, Math.max(2, duration * .32));
+  const firstShot = doc?.shots?.[0];
+  const forward = actorTravelBasis(doc, actors[0], 0).forward;
+  const right = rightFromForward(forward);
+  const actorPoints = [];
+  for (const actor of actors) {
+    const start = evaluateActorAtTime(doc, actor, 0)?.position || actor.position;
+    const future = evaluateActorAtTime(doc, actor, sampleTime)?.position || start;
+    actorPoints.push(start, future);
+  }
+  const contextPoints=[...actorPoints];
+  if (firstShot) {
+    const a = evaluateCameraAtTime(doc, Math.min(firstShot.end, firstShot.start + .001));
+    const b = evaluateCameraAtTime(doc, Math.max(firstShot.start, firstShot.end - .001));
+    if (a?.position) contextPoints.push(a.position);
+    if (b?.position) contextPoints.push(b.position);
+  }
+  const actorXs=actorPoints.map(p=>p[0]), actorZs=actorPoints.map(p=>p[2]);
+  const xs=contextPoints.map(p=>p[0]), zs=contextPoints.map(p=>p[2]);
+  const minX=Math.min(...xs), maxX=Math.max(...xs), minZ=Math.min(...zs), maxZ=Math.max(...zs);
+  const actorMinX=Math.min(...actorXs), actorMaxX=Math.max(...actorXs), actorMinZ=Math.min(...actorZs), actorMaxZ=Math.max(...actorZs);
+  const spanX=Math.max(2,maxX-minX), spanZ=Math.max(5,maxZ-minZ), span=Math.max(spanX,spanZ);
+  const center=[(actorMinX+actorMaxX)/2, .9, (actorMinZ+actorMaxZ)/2];
+  const lead=0;
+  const target=[center[0]+forward[0]*lead, center[1], center[2]+forward[2]*lead];
+  const isRoad=doc?.scene?.environment?.type==='road';
+  const side=isRoad ? Math.min(4.9, Math.max(4.4, spanX*.40)) : Math.min(8,Math.max(4.8,span*.34));
+  const back=isRoad ? Math.min(20,Math.max(16,span*.86)) : Math.min(18,Math.max(12.5,span*.78));
+  const height=isRoad ? Math.min(12,Math.max(9.5,span*.50)) : Math.min(11.5,Math.max(8.2,span*.48));
+  const position=[
+    target[0] + right[0]*side - forward[0]*back,
+    target[1] + height,
+    target[2] + right[2]*side - forward[2]*back,
+  ];
+  return { position, target, forward, bounds:{minX,maxX,minZ,maxZ}, sampleTime };
+}
+
 export function buildTimelineRows(doc) {
   return {
     shots: doc.shots.map(s => ({ id:s.id,label:s.title,start:s.start,end:s.end,type:'shot' })),

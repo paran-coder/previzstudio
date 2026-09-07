@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { directPromptFallback } from '../src/director-fallback.js';
-import { activeShotAtTime, evaluateActorAtTime, evaluateCameraAtTime } from '../src/sequence.js';
+import { activeShotAtTime, evaluateActorAtTime, evaluateCameraAtTime, deriveEditOverview, fitAspectRect, outputAspect } from '../src/sequence.js';
 
 const doc=directPromptFallback('밤의 도로. 한 사람이 도망치고 다른 사람이 뒤따라 쫓아간다. 카메라는 역동적으로 두 사람 사이를 오가며 추격한다.');
 
@@ -60,4 +60,28 @@ test('480개 24fps 프레임 전체에서 카메라 transform이 유한하고 �
     counts.set(cam.shot.id,(counts.get(cam.shot.id)||0)+1);
   }
   assert.deepEqual([...counts.entries()],[['shot_01',96],['shot_02',120],['shot_03',120],['shot_04',144]]);
+});
+
+
+test('출력 스테이지는 UI 패널 비율과 무관하게 16:9로 맞춘다',()=>{
+  assert.equal(outputAspect(doc),1920/1080);
+  const wide=fitAspectRect(1200,500,outputAspect(doc));
+  assert.ok(Math.abs(wide.width/wide.height-16/9)<1e-9);
+  assert.ok(wide.left>100);
+  assert.equal(wide.top,0);
+  const tall=fitAspectRect(700,700,outputAspect(doc));
+  assert.ok(Math.abs(tall.width/tall.height-16/9)<1e-9);
+  assert.equal(tall.left,0);
+  assert.ok(tall.top>100);
+});
+
+test('첫 편집 카메라는 도로 위 3/4 오버뷰로 블로킹을 프레이밍한다',()=>{
+  const view=deriveEditOverview(doc);
+  const starts=doc.actors.map(a=>a.position);
+  const minStartZ=Math.min(...starts.map(p=>p[2]));
+  assert.ok(view.position[1]>7.5);
+  assert.ok(view.position[2]<view.target[2]-10);
+  assert.ok(Math.abs(view.position[0])<6.5);
+  assert.ok(view.target[2]>minStartZ);
+  assert.ok(view.sampleTime>=2);
 });

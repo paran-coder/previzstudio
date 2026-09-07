@@ -1,76 +1,81 @@
-# Previz Studio v1.2.1 — Context Notes
+# Previz Studio v1.2.2 — Context Notes
 
 ## Patch Goal
-Previz Studio v1.2.1 fixes two product-critical issues discovered in v1.2.0:
-1. Camera preview and exported video must evaluate the exact same shot camera at the same master time.
-2. The dark UI must regain readable hierarchy through surface layering, typography scale, and restrained accent usage.
+v1.2.2 is a stability/accuracy release. No new creative features are added.
+
+Two production issues are the focus:
+1. Camera Preview must match PNG/MP4 output framing, not only camera transform.
+2. The first Edit View camera must open on a useful scene overview instead of an obstructed or overly low angle.
+
+UI hierarchy is also tightened after production review.
 
 ## Product Intent
-Previz Studio is a browser-based previz tool for film/advertising creators and AI-video creators. The primary deliverable is a reusable visual reference: blocking, actor motion, camera angle/movement, and a rendered sequence. Natural-language input is only a setup shortcut.
+Previz Studio is a browser-based previz tool for film/advertising creators and AI-video creators. The primary deliverable is a visual reference: blocking, actor motion, camera angle/movement, and a rendered sequence. Natural-language input is only a setup shortcut.
 
-## v1.2.1 Camera Rules
-- Editing view remains a free director/orbit camera used only for spatial inspection.
-- Camera Preview uses the same `evaluateCameraAtTime()` result as export.
-- Video export must not maintain a separate camera path implementation.
-- Shot changes use the master sequence time and deterministic cut boundaries.
-- Default shot placement must derive from actor blocking + travel vector + lens/shot archetype, not arbitrary hard-coded world coordinates.
-- Shot overlay appears briefly after a cut with shot number, lens, and camera archetype.
+## Output Framing Contract
+- The canonical output aspect ratio is taken from `sequence.width / sequence.height`.
+- Camera Preview always displays that canonical output stage, centered inside the viewport with letterbox/pillarbox space when needed.
+- The Shot Camera projection matrix always uses the canonical output aspect ratio.
+- UI viewport dimensions must never overwrite the Shot Camera aspect.
+- Edit View may use the full available viewport and its own aspect ratio.
+- Camera Preview, PNG capture, WebCodecs export, and MediaRecorder export must share the same master-time scene/camera evaluator and output framing.
 
-## v1.2.1 UI Direction
-The UI is informed by the provided ui-polish workflow and Lamborghini-inspired design tokens, but does not copy either visual system.
+## Initial Edit Camera Contract
+The first page load is a spatial workspace, not a rendered shot.
+
+It must:
+- frame all initial actors;
+- show the early travel direction and enough forward path to understand blocking;
+- include the first camera path where practical;
+- use a three-quarter elevated overview rather than a ground-level or near-obstructed angle;
+- derive target/radius from scene bounds instead of fixed world coordinates;
+- avoid auto-reframing after the user manually orbits/zooms.
+
+For the official chase scene, the desired feel is a 3/4 top overview: readable road direction, two actors, first camera route, minimal occlusion from roadside geometry.
+
+## UI Direction
+The provided `ui-polish` reference remains the hierarchy workflow: structure first, hierarchy second, polish last.
+The Lamborghini-inspired tokens are used only as reference for dark-surface depth, not copied as a brand skin.
 
 ### Surface hierarchy
-- Abyss/background: #06080A
-- Workspace: #0B0F13
-- Panel: #12171C
-- Elevated panel: #181F26
-- Interactive/selected: #202933
-- Border: #2A343E
+- App background: #05070A
+- Workspace: #090D11
+- Side panels: #11171D
+- Timeline / elevated module: #151C23
+- Elevated card: #1B232B
+- Interactive/hover: #222C35
+- Border: #323E49
 
-Depth is created primarily through surface-lightness shifts and 1px borders rather than heavy shadows.
+Depth should come from surface-lightness changes and precise borders, not decorative shadows.
 
 ### Accent discipline
-- Product primary: #C6FF4A, reserved for primary CTA/current playhead/current selection.
-- Informational cyan: #4CB8E8, reserved for actor/action data and info feedback.
-- Camera purple: #9A7BFF, reserved for camera track and camera-related affordances.
-- Do not scatter accent colors decoratively.
+- Lime #C6FF4A: primary/current/playhead only
+- Cyan #4CB8E8: actor/action semantics
+- Purple #9A7BFF: camera semantics
 
-### Typography hierarchy
-- Product/brand: 15px / 700
-- Panel title: 12px / 700
-- Current shot title: 13px / 700
-- Section title: 10px / 650
-- Body: 11px / 1.5
-- Field label: 10.5–11px
-- Field value: 11–12px / 600
-- Button: 11px / 650
-- Primary CTA: 12px / 700
-- Timeline clip and track: 10px / 600
-- Metadata: 9px only where truly secondary
-- Avoid applying wide uppercase tracking to Korean section labels.
-
-## Reference UI Principles
-- Structure before decoration.
-- Viewport is the visual center of gravity.
-- Timeline is the second most important module.
-- Shot inspector is third.
-- Scene tree is supporting navigation.
-- Renderer/backend status is metadata and must never compete with shot information.
-- Primary and secondary actions must not visually compete.
+### Typography target
+- Brand: 16px
+- Panel title: 13px
+- Current shot title: 14px
+- Section title: 11px
+- General Korean UI/body: 12px
+- Field values: 12px
+- Timeline labels/clips: 11px
+- Buttons: 12px
+- Technical metadata: 9.5–10px minimum
 
 ## Official Regression Sequence
 20-second night road chase, 24fps, 1920x1080:
-- Shot 01: rear 3/4 wide establish
+- Shot 01: rear 3/4 wide
 - Shot 02: side tracking
 - Shot 03: rear chase / handheld follow
 - Shot 04: dynamic between / push
 
 ## Completion Criteria
-- Preview and exported frames match at representative master times.
-- First shot starts from a blocking-derived rear 3/4 angle instead of an arbitrary elevated orbit position.
-- Camera Preview auto-cuts through all sequence shots.
-- Edit View remains clearly labeled as a non-render spatial workspace.
-- Panel surfaces are distinguishable without relying on shadows.
-- No core Korean UI label is below 10px.
-- Only metadata may use 9px.
-- Runtime errors: 0 in smoke test.
+- Camera Preview is a true 16:9 output stage at 1920x1080 projects regardless of UI panel aspect.
+- Preview and export use the same Shot Camera aspect, FOV, transform, actor state, cut timing, and lighting.
+- Representative frames at 0s / 4s+ / 9s+ / 14s+ / 19s are composition-equivalent between preview and output.
+- First Edit View load gives a readable blocking overview with actors/path visible and no dominant foreground obstruction.
+- User orbit/zoom is preserved after interaction.
+- Korean text hierarchy remains readable at 1920x1080 production scale.
+- Runtime/unit regression tests pass.
