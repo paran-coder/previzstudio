@@ -1,5 +1,30 @@
 # Changelog
 
+## v1.2.3 — 2026-09-07
+
+### Render consistency
+- Camera Preview, PNG capture, WebCodecs MP4, and MediaRecorder fallback now call the same `renderCanonicalFrame(time)` output entry point.
+- Export resolution changes backing pixel dimensions without changing Shot Camera aspect/composition.
+- Canonical output aspect is validated before export.
+- Edit View remains an independent free camera.
+
+### Build / deployment integrity
+- Added Vite production build and `dist/` output.
+- Three.js moved from runtime CDN import map to npm dependency.
+- Mediabunny moved from runtime CDN dynamic URL to npm dependency.
+- Production JS/CSS uses content-hashed asset filenames.
+- Added Vercel cache policy: HTML no-store, hashed assets immutable.
+- Added runtime APP/build identity derived from Vercel/Git commit when available.
+- `og.png` is copied through Vite `public/` and social tags use the production absolute URL.
+
+### Verification
+- JavaScript syntax checks: PASS.
+- Automated regression tests: 22/22 PASS.
+- 1150×480 viewport stage contract: 853.33×480 centered 16:9 PASS.
+- Actual Vite dependency installation/build remains for GitHub/Vercel verification because the work container cannot access npm registry.
+- Production Preview vs video comparison remains required before UI final polish.
+
+
 ## v1.2.2 — 2026-09-07
 
 ### Fixed

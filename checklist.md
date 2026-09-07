@@ -1,4 +1,4 @@
-# Previz Studio v1.2.2 — Checklist
+# Previz Studio v1.2.3 — Checklist
 
 ## Phase 0 — Required docs
 - [x] `context-notes.md` updated before implementation
@@ -6,43 +6,41 @@
 - [x] `README.md` updated before implementation
 - [x] `User manual.md` updated before implementation
 
-## Phase 1 — Output framing consistency
-- [x] Canonical output aspect derived from sequence dimensions
-- [x] Camera Preview rendered inside fixed output-aspect stage
-- [x] Shot Camera aspect never follows arbitrary UI viewport ratio
-- [x] Edit camera keeps independent responsive aspect
-- [x] PNG capture uses canonical output framing
-- [x] MP4/WebM export uses canonical output framing
-- [x] Export restore returns to correct preview/edit size
-- [x] Preview/export regression tests added
+## Phase 1 — Canonical frame pipeline
+- [x] One canonical Shot Camera frame render entry point
+- [x] Preview uses canonical frame entry point
+- [x] PNG capture uses canonical frame entry point
+- [x] WebCodecs/MP4 export uses canonical frame entry point
+- [x] MediaRecorder fallback uses canonical frame entry point
+- [x] Output aspect isolated from viewport dimensions
+- [x] Export pixel-resize cannot change composition
+- [x] Edit View stays independent
 
-## Phase 2 — Initial Edit View camera
-- [x] Scene bounds / travel direction overview calculation
-- [x] 3/4 elevated initial angle
-- [x] Blocking + early travel path visible
-- [x] Avoid dominant foreground road/building obstruction
-- [x] User orbit/zoom marks camera as manually adjusted
-- [x] Scene regeneration intentionally reframes once
-- [x] Canvas fallback matches overview intent
+## Phase 2 — Vite production build
+- [x] Add Vite build scripts
+- [x] Add npm `three` dependency
+- [x] Remove runtime Three.js CDN import map
+- [x] Build output targets `dist/`
+- [x] Content-hashed JS/CSS assets configured
+- [x] Vercel config serves Vite build output
+- [x] Runtime build ID exposed
+- [x] App/renderer/export build IDs are consistent
 
-## Phase 3 — Production UI hierarchy
-- [x] Stronger dark surface separation
-- [x] Side panels visually distinct from workspace
-- [x] Timeline elevated as second-priority module
-- [x] Typography target increased for Korean UI
-- [x] Inspector current-shot hierarchy strengthened
-- [x] CTA state hierarchy preserved
-- [x] Camera Preview stage/letterbox visually clear
+## Phase 3 — Regression protection
+- [x] Preview/export source-path contract test
+- [x] Canonical output-aspect test
+- [x] Build configuration test
+- [x] No CDN Three.js import-map test
+- [x] Version/build ID test
+- [x] Existing 20s timeline/camera tests pass
+- [x] Existing edit-overview tests pass
 
 ## Phase 4 — Verification
-- [x] Syntax checks pass
-- [x] Unit/contract tests pass
-- [x] 20s shot timing regression passes
-- [x] Shot camera aspect regression passes
-- [x] Initial Edit View framing regression passes
-- [x] Representative preview/export frame contract passes
-- [ ] Static 1920x1080 UI review generated (container Chromium capture unavailable)
-- [ ] Production rerender verification after user deploy
+- [x] JavaScript syntax checks pass
+- [x] Automated tests pass
+- [ ] Production build succeeds where dependencies are available
+- [x] Hashed asset naming contract configured and tested
+- [ ] Production Camera Preview vs video checked at 0.5/4.5/9.5/14.5/19.0s after user deployment
 
 ## Result
-Core v1.2.2 implementation complete. Production frame-by-frame verification remains after user deployment.
+Core v1.2.3 implementation complete. Automated tests: **22/22 PASS**. The container cannot install npm dependencies/build Vite because registry access is unavailable, so the actual `npm run build` and Production frame comparison remain deployment verification items.

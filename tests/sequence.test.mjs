@@ -85,3 +85,11 @@ test('첫 편집 카메라는 도로 위 3/4 오버뷰로 블로킹을 프레이
   assert.ok(view.target[2]>minStartZ);
   assert.ok(view.sampleTime>=2);
 });
+
+test('1150×480 production viewport에서도 canonical preview stage는 정확히 16:9 중앙 배치다',()=>{
+  const rect=fitAspectRect(1150,480,outputAspect(doc));
+  assert.ok(Math.abs(rect.width-853.3333333333333)<1e-6);
+  assert.equal(rect.height,480);
+  assert.ok(Math.abs(rect.left-148.33333333333337)<1e-6);
+  assert.equal(rect.top,0);
+});

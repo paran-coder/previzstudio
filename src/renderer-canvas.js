@@ -1,4 +1,5 @@
 import { evaluateActorAtTime, evaluateCameraAtTime, deriveEditOverview, fitAspectRect, outputAspect } from './sequence.js';
+import { BUILD_LABEL } from './build-info.js';
 
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const vec=(x=0,y=0,z=0)=>({x,y,z}); const fromA=a=>vec(a[0],a[1],a[2]);
@@ -7,7 +8,7 @@ const cross=(a,b)=>vec(a.y*b.z-a.z*b.y,a.z*b.x-a.x*b.z,a.x*b.y-a.y*b.x); const l
 
 export class CanvasSceneEngine {
   constructor(container){this.container=container;this.canvas=document.createElement('canvas');this.ctx=this.canvas.getContext('2d',{alpha:false});container.replaceChildren(this.canvas);this.document=null;this.time=0;this.playing=false;this.viewMode='edit';this.onTime=null;this.lastTime=performance.now();this.exportState=null;this.directorCamera={position:[7.5,8.5,-15],target:[0,1,0],lens:42};this.directorUserAdjusted=false;this.stageRect={width:1,height:1,left:0,top:0};this.resizeObserver=new ResizeObserver(()=>this.resize());this.resizeObserver.observe(container);this.resize();this.loop=this.loop.bind(this);requestAnimationFrame(this.loop);}
-  get rendererLabel(){return 'Canvas 대체 렌더러';}
+  get rendererLabel(){return `Canvas 대체 렌더러 · ${BUILD_LABEL}`;}
   getOutputAspect(){return outputAspect(this.document);}
   resize(){
     if(this.exportState)return;
@@ -28,13 +29,40 @@ export class CanvasSceneEngine {
   project(point,cam){const b=this.basis(cam),rel=sub(point,b.p),z=dot(rel,b.f);if(z<=.08)return null;const x=dot(rel,b.r),y=dot(rel,b.u);const f=(this.height*.5)/Math.tan((2*Math.atan(36/(2*cam.lens)))/2);return {x:this.width*.5+x/z*f,y:this.height*.5-y/z*f,z,scale:f/z};}
   line3(a,b,cam,color,width=1,dash=[]){const pa=this.project(fromA(a),cam),pb=this.project(fromA(b),cam);if(!pa||!pb)return;const c=this.ctx;c.save();c.strokeStyle=color;c.lineWidth=width;c.setLineDash(dash);c.beginPath();c.moveTo(pa.x,pa.y);c.lineTo(pb.x,pb.y);c.stroke();c.restore();}
   drawRoad(cam){const c=this.ctx;c.fillStyle='#070a0e';c.fillRect(0,0,this.width,this.height);for(let z=-30;z<=36;z+=2){this.line3([-5,0,z],[5,0,z],cam,'rgba(130,145,160,.08)');}for(let x=-5;x<=5;x+=1)this.line3([x,0,-30],[x,0,40],cam,'rgba(130,145,160,.08)');this.line3([-5,.01,-30],[-5,.01,40],cam,'#444e57',2);this.line3([5,.01,-30],[5,.01,40],cam,'#444e57',2);for(let z=-28;z<38;z+=5)this.line3([0,.02,z],[0,.02,z+2.2],cam,'rgba(220,214,190,.72)',3);for(const x of [-7.5,7.5])for(let z=-26;z<=32;z+=12){const base=this.project(vec(x,0,z),cam),top=this.project(vec(x,7,z),cam);if(base&&top){const w=clamp(base.scale*4,20,220);c.fillStyle=x<0?'#171c21':'#1b2026';c.fillRect(base.x-w/2,top.y,w,base.y-top.y);}}}
-  drawActor(actor,state,cam,index){const p=state.position;const foot=this.project(vec(p[0],p[1],p[2]),cam),hip=this.project(vec(p[0],p[1]+1,p[2]),cam),head=this.project(vec(p[0],p[1]+2.28,p[2]),cam);if(!foot||!hip||!head)return;const c=this.ctx,scale=clamp(head.scale,.1,100),bodyW=clamp(scale*.55,7,55),col=index===0?'#d2d9df':'#9faab4',s=state.stride;c.save();c.strokeStyle=col;c.lineCap='round';c.lineWidth=clamp(bodyW*.22,3,14);c.beginPath();c.moveTo(hip.x,hip.y);c.lineTo(foot.x+Math.sin(s)*bodyW*.55,foot.y);c.stroke();c.beginPath();c.moveTo(hip.x,hip.y);c.lineTo(foot.x-Math.sin(s)*bodyW*.55,foot.y);c.stroke();c.lineWidth=bodyW;c.beginPath();c.moveTo(hip.x,hip.y);c.lineTo(head.x,head.y+bodyW*.65);c.stroke();c.lineWidth=clamp(bodyW*.18,3,12);const shoulderY=head.y+bodyW*.65;c.beginPath();c.moveTo(head.x-bodyW*.25,shoulderY);c.lineTo(head.x-bodyW*.6,shoulderY+Math.sin(-s)*bodyW*.55+bodyW*.45);c.stroke();c.beginPath();c.moveTo(head.x+bodyW*.25,shoulderY);c.lineTo(head.x+bodyW*.6,shoulderY+Math.sin(s)*bodyW*.55+bodyW*.45);c.stroke();c.beginPath();c.arc(head.x,head.y,clamp(bodyW*.45,5,28),0,Math.PI*2);c.fillStyle=col;c.fill();if(this.viewMode==='edit'){c.font='10px ui-monospace,monospace';c.fillStyle=index===0?'#7dd2ff':'#ffbd7d';c.fillText(actor.id.toUpperCase(),head.x-bodyW,head.y-bodyW*.8);}c.restore();}
+  drawActor(actor,state,cam,index,showLabel=false){const p=state.position;const foot=this.project(vec(p[0],p[1],p[2]),cam),hip=this.project(vec(p[0],p[1]+1,p[2]),cam),head=this.project(vec(p[0],p[1]+2.28,p[2]),cam);if(!foot||!hip||!head)return;const c=this.ctx,scale=clamp(head.scale,.1,100),bodyW=clamp(scale*.55,7,55),col=index===0?'#d2d9df':'#9faab4',s=state.stride;c.save();c.strokeStyle=col;c.lineCap='round';c.lineWidth=clamp(bodyW*.22,3,14);c.beginPath();c.moveTo(hip.x,hip.y);c.lineTo(foot.x+Math.sin(s)*bodyW*.55,foot.y);c.stroke();c.beginPath();c.moveTo(hip.x,hip.y);c.lineTo(foot.x-Math.sin(s)*bodyW*.55,foot.y);c.stroke();c.lineWidth=bodyW;c.beginPath();c.moveTo(hip.x,hip.y);c.lineTo(head.x,head.y+bodyW*.65);c.stroke();c.lineWidth=clamp(bodyW*.18,3,12);const shoulderY=head.y+bodyW*.65;c.beginPath();c.moveTo(head.x-bodyW*.25,shoulderY);c.lineTo(head.x-bodyW*.6,shoulderY+Math.sin(-s)*bodyW*.55+bodyW*.45);c.stroke();c.beginPath();c.moveTo(head.x+bodyW*.25,shoulderY);c.lineTo(head.x+bodyW*.6,shoulderY+Math.sin(s)*bodyW*.55+bodyW*.45);c.stroke();c.beginPath();c.arc(head.x,head.y,clamp(bodyW*.45,5,28),0,Math.PI*2);c.fillStyle=col;c.fill();if(showLabel){c.font='10px ui-monospace,monospace';c.fillStyle=index===0?'#7dd2ff':'#ffbd7d';c.fillText(actor.id.toUpperCase(),head.x-bodyW,head.y-bodyW*.8);}c.restore();}
   drawGuides(cam){if(this.viewMode!=='edit')return;for(const actor of this.document.actors){for(const a of actor.actions){if(a.from&&a.to)this.line3(a.from,a.to,cam,actor.id==='actor_01'?'#4cb8e8':'#8097a8',2,[7,5]);}}for(const shot of this.document.shots){let prev=null;for(let i=0;i<=16;i++){const t=shot.start+(shot.end-shot.start)*(i/16),cs=evaluateCameraAtTime(this.document,t),p=cs.position;if(prev)this.line3(prev,p,cam,'#9a7bff',1.5,[5,4]);prev=p;}}}
-  draw(){if(!this.document)return;const cam=this.viewMode==='preview'?{position:this.cameraState.position,target:this.cameraState.target,lens:this.cameraState.lens}:this.getDirectorCamera();this.drawRoad(cam);this.drawGuides(cam);this.actorStates.forEach((x,i)=>this.drawActor(x.actor,x.state,cam,i));const c=this.ctx;if(this.viewMode==='preview'){const g=c.createLinearGradient(0,0,0,this.height);g.addColorStop(0,'rgba(6,10,15,.18)');g.addColorStop(1,'rgba(0,0,0,.36)');c.fillStyle=g;c.fillRect(0,0,this.width,this.height);}else{c.strokeStyle='rgba(220,230,240,.22)';c.strokeRect(this.width*.07,this.height*.11,this.width*.86,this.height*.78);}}
-  loop(now){const dt=Math.min((now-this.lastTime)/1000,.08);this.lastTime=now;if(this.playing&&this.document){let next=this.time+dt;if(next>=this.document.sequence.duration){next=this.document.sequence.duration;this.playing=false;}this.applyTime(next);this.onTime?.(this.time,this.playing,this.activeShot);}this.draw();requestAnimationFrame(this.loop);}
-  async captureAtTime(time){const w=this.document?.sequence?.width||1920,h=this.document?.sequence?.height||1080;this.beginExport(w,h);try{this.renderExportFrame(time);return await new Promise(r=>this.canvas.toBlob(r,'image/png'));}finally{this.endExport();}}
-  beginExport(width,height){if(this.exportState)return;this.exportState={mode:this.viewMode,time:this.time,playing:this.playing};this.playing=false;this.viewMode='preview';this.setSize(width,height,false);}
-  renderExportFrame(time){this.applyTime(time);this.draw();}
-  endExport(){if(!this.exportState)return;const s=this.exportState;this.exportState=null;this.viewMode=s.mode;this.applyTime(s.time);this.playing=s.playing;this.resize();}
+  drawCanonicalOutput(){
+    if(!this.document)return;
+    const cam={position:this.cameraState.position,target:this.cameraState.target,lens:this.cameraState.lens};
+    this.drawRoad(cam);
+    this.actorStates.forEach((x,i)=>this.drawActor(x.actor,x.state,cam,i,false));
+    const c=this.ctx,g=c.createLinearGradient(0,0,0,this.height);g.addColorStop(0,'rgba(6,10,15,.18)');g.addColorStop(1,'rgba(0,0,0,.36)');c.fillStyle=g;c.fillRect(0,0,this.width,this.height);
+  }
+  drawEditFrame(){
+    if(!this.document)return;
+    const cam=this.getDirectorCamera();this.drawRoad(cam);this.drawGuides(cam);this.actorStates.forEach((x,i)=>this.drawActor(x.actor,x.state,cam,i,true));
+    const c=this.ctx;c.strokeStyle='rgba(220,230,240,.22)';c.strokeRect(this.width*.07,this.height*.11,this.width*.86,this.height*.78);
+  }
+  renderCanonicalFrame(time){
+    if(!this.document)return null;
+    this.applyTime(time);this.drawCanonicalOutput();return this.cameraState;
+  }
+  loop(now){
+    const dt=Math.min((now-this.lastTime)/1000,.08);this.lastTime=now;
+    if(this.playing&&this.document){let next=this.time+dt;if(next>=this.document.sequence.duration){next=this.document.sequence.duration;this.playing=false;}this.applyTime(next);this.onTime?.(this.time,this.playing,this.activeShot);}
+    if(this.viewMode==='preview')this.renderCanonicalFrame(this.time);else this.drawEditFrame();
+    requestAnimationFrame(this.loop);
+  }
+  async captureAtTime(time){
+    const w=this.document?.sequence?.width||1920,h=this.document?.sequence?.height||1080;this.beginCanonicalOutput(w,h);
+    try{this.renderCanonicalFrame(time);return await new Promise(r=>this.canvas.toBlob(r,'image/png'));}
+    finally{this.endCanonicalOutput();}
+  }
+  beginCanonicalOutput(width,height){
+    if(this.exportState)return;const aspect=this.getOutputAspect(),requested=width/Math.max(1,height);
+    if(Math.abs(requested-aspect)>1e-4)throw new Error('출력 해상도 비율이 프로젝트 출력 비율과 일치하지 않습니다.');
+    this.exportState={mode:this.viewMode,time:this.time,playing:this.playing};this.playing=false;this.viewMode='preview';this.setSize(width,height,false);
+  }
+  endCanonicalOutput(){if(!this.exportState)return;const s=this.exportState;this.exportState=null;this.viewMode=s.mode;this.applyTime(s.time);this.playing=s.playing;this.resize();}
   dispose(){this.resizeObserver.disconnect();}
 }

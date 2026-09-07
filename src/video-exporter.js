@@ -1,12 +1,11 @@
-const MEDIABUNNY_URL = 'https://cdn.jsdelivr.net/npm/mediabunny@1.55.7/+esm';
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 async function exportMp4(engine, doc, onProgress) {
   if (!('VideoEncoder' in globalThis)) throw new Error('WebCodecs VideoEncoder를 지원하지 않습니다.');
-  const { Output, Mp4OutputFormat, BufferTarget, CanvasSource, Quality } = await import(MEDIABUNNY_URL);
+  const { Output, Mp4OutputFormat, BufferTarget, CanvasSource, Quality } = await import('mediabunny');
   const { width, height, fps, duration } = doc.sequence;
   const totalFrames = Math.round(duration * fps);
-  engine.beginExport(width, height);
+  engine.beginCanonicalOutput(width, height);
   try {
     const target = new BufferTarget();
     const output = new Output({ format: new Mp4OutputFormat(), target });
@@ -20,7 +19,7 @@ async function exportMp4(engine, doc, onProgress) {
     await output.start();
     for (let i = 0; i < totalFrames; i++) {
       const timestamp = i / fps;
-      engine.renderExportFrame(timestamp);
+      engine.renderCanonicalFrame(timestamp);
       await source.add(timestamp, 1 / fps, { keyFrame: i % (fps * 2) === 0 });
       onProgress?.((i + 1) / totalFrames, 'MP4');
     }
@@ -30,7 +29,7 @@ async function exportMp4(engine, doc, onProgress) {
     if (!buffer?.byteLength) throw new Error('MP4 버퍼가 비어 있습니다.');
     return new Blob([buffer], { type: 'video/mp4' });
   } finally {
-    engine.endExport();
+    engine.endCanonicalOutput();
   }
 }
 
@@ -51,7 +50,7 @@ async function exportRealtimeRecorder(engine, doc, onProgress) {
   const mimeType = bestRecorderMime();
   if (mimeType === null || !engine.canvas.captureStream) throw new Error('브라우저 영상 녹화를 지원하지 않습니다.');
   const totalFrames = Math.round(duration * fps);
-  engine.beginExport(width, height);
+  engine.beginCanonicalOutput(width, height);
   const stream = engine.canvas.captureStream(fps);
   const recorder = new MediaRecorder(stream, mimeType ? { mimeType, videoBitsPerSecond: 12_000_000 } : { videoBitsPerSecond: 12_000_000 });
   const chunks = [];
@@ -66,7 +65,7 @@ async function exportRealtimeRecorder(engine, doc, onProgress) {
     const start = performance.now();
     for (let i = 0; i < totalFrames; i++) {
       const timestamp = i / fps;
-      engine.renderExportFrame(timestamp);
+      engine.renderCanonicalFrame(timestamp);
       onProgress?.((i + 1) / totalFrames, mimeType.includes('mp4') ? 'MP4 실시간' : 'WebM 실시간');
       const target = start + (i + 1) * frameMs;
       await sleep(Math.max(0, target - performance.now()));
@@ -75,7 +74,7 @@ async function exportRealtimeRecorder(engine, doc, onProgress) {
     recorder.stop();
     await stopped;
     stream.getTracks().forEach(track => track.stop());
-    engine.endExport();
+    engine.endCanonicalOutput();
   }
   const type = recorder.mimeType || mimeType || 'video/webm';
   const blob = new Blob(chunks, { type });

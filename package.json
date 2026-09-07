@@ -1,12 +1,24 @@
 {
   "name": "previz-studio",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node server.mjs",
-    "check": "node --check server.mjs && node --check src/app.js && node --check src/director-fallback.js && node --check src/scene-schema.js && node --check src/sequence.js && node --check src/renderer-canvas.js && node --check src/renderer-three.js && node --check src/video-exporter.js",
+    "dev": "vite --host 0.0.0.0 --port 4173",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 4173",
+    "start": "vite preview --host 0.0.0.0 --port 4173",
+    "check": "node --check server.mjs && node --check vite.config.js && node --check src/build-info.js && node --check src/app.js && node --check src/director-fallback.js && node --check src/scene-schema.js && node --check src/sequence.js && node --check src/renderer-canvas.js && node --check src/renderer-three.js && node --check src/video-exporter.js",
     "test": "node --test tests/*.test.mjs"
   },
-  "engines": { "node": ">=22" }
+  "dependencies": {
+    "mediabunny": "1.55.7",
+    "three": "0.185.1"
+  },
+  "devDependencies": {
+    "vite": "8.2.2"
+  },
+  "engines": {
+    "node": ">=22.12"
+  }
 }

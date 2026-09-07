@@ -1,4 +1,4 @@
-export const SCENE_VERSION = '1.2.2';
+export const SCENE_VERSION = '1.2.3';
 
 export const CAMERA_MOVES = [
   'static', 'dolly_in', 'dolly_out', 'track_follow', 'track_between', 'orbit', 'handheld_follow'
@@ -121,7 +121,7 @@ export function validateSceneDocument(doc) {
   if (!Array.isArray(doc?.shots) || doc.shots.length < 1) errors.push('샷이 최소 1개 필요합니다.');
   const duration = Number(doc?.sequence?.duration || 0);
   if (!(duration >= 1 && duration <= 120)) errors.push('시퀀스 길이가 올바르지 않습니다.');
-  if (doc?.sequence?.fps !== 24) errors.push('v1.2.2 기본 시퀀스 FPS는 24여야 합니다.');
+  if (doc?.sequence?.fps !== 24) errors.push('v1.2.3 기본 시퀀스 FPS는 24여야 합니다.');
   for (const [i, actor] of (doc?.actors || []).entries()) {
     for (const [j, action] of (actor.actions || []).entries()) {
       if (!ACTOR_ACTIONS.includes(action?.type)) errors.push(`배우 ${i+1} 액션 ${j+1}: 지원하지 않는 동작입니다.`);

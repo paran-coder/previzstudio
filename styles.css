@@ -33,3 +33,5 @@
 @media(max-width:1180px){.작업공간{grid-template-columns:200px minmax(500px,1fr) 280px}.프롬프트독{grid-template-columns:210px 1fr 130px}}
 @media(max-width:930px){html,body{overflow:auto}.앱{height:auto;min-height:100vh;display:block}.상단바{min-height:64px;position:sticky;top:0;z-index:20}.작업공간{display:block;padding:8px}.씬패널,.속성패널{margin-bottom:8px;max-height:none}.중앙열{height:720px;margin-bottom:8px}.프롬프트독{position:sticky;bottom:0;margin:8px;grid-template-columns:1fr}.프롬프트맥락{display:none}.프롬프트독 textarea{height:62px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+/* v1.2.3 deployment integrity metadata */
+.빌드뱃지{color:#7f8b95;border-color:#25303a;background:rgba(8,11,14,.76);font-size:9px}

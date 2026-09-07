@@ -1,4 +1,5 @@
 import { evaluateActorAtTime, evaluateCameraAtTime, deriveEditOverview, fitAspectRect, outputAspect } from './sequence.js';
+import { BUILD_LABEL } from './build-info.js';
 
 const THREE_VERSION = '0.185.1';
 const clamp = (v,a,b)=>Math.min(b,Math.max(a,v));
@@ -34,7 +35,7 @@ export class ThreeSceneEngine {
     this.bindControls(); this.resizeObserver=new ResizeObserver(()=>this.resize()); this.resizeObserver.observe(container); this.resize();
     this.renderer.setAnimationLoop((time)=>this.loop(time));
   }
-  get rendererLabel(){return `Three.js r${THREE_VERSION.replace('0.','')} · WebGL2`;}
+  get rendererLabel(){return `Three.js r${THREE_VERSION.replace('0.','')} · WebGL2 · ${BUILD_LABEL}`;}
   get canvas(){return this.renderer.domElement;}
 
   bindControls(){
@@ -129,27 +130,56 @@ export class ThreeSceneEngine {
     this.orbitYaw=Math.atan2(offset.x,offset.z);
     this.updateDirectorCamera();
   }
-  applyTime(time){if(!this.document)return;this.time=clamp(time,0,this.document.sequence.duration);for(const actor of this.document.actors)this.applyActorPose(actor,evaluateActorAtTime(this.document,actor,this.time));this.updateLabels();const c=evaluateCameraAtTime(this.document,this.time);this.shotCamera.position.set(...c.position);this.shotCamera.lookAt(new this.THREE.Vector3(...c.target));this.shotCamera.fov=2*Math.atan(36/(2*c.lens))*180/Math.PI;this.shotCamera.updateProjectionMatrix();this.activeShot=c.shot;return c;}
+  applyTime(time){if(!this.document)return;this.time=clamp(time,0,this.document.sequence.duration);for(const actor of this.document.actors)this.applyActorPose(actor,evaluateActorAtTime(this.document,actor,this.time));this.updateLabels();const c=evaluateCameraAtTime(this.document,this.time);this.shotCamera.position.set(...c.position);this.shotCamera.lookAt(new this.THREE.Vector3(...c.target));this.shotCamera.fov=2*Math.atan(36/(2*c.lens))*180/Math.PI;this.shotCamera.aspect=this.getOutputAspect();this.shotCamera.updateProjectionMatrix();this.activeShot=c.shot;return c;}
   updateDirectorCamera(){const cp=Math.cos(this.orbitPitch);this.directorCamera.position.set(this.directorTarget.x+Math.sin(this.orbitYaw)*cp*this.orbitRadius,this.directorTarget.y+Math.sin(this.orbitPitch)*this.orbitRadius,this.directorTarget.z+Math.cos(this.orbitYaw)*cp*this.orbitRadius);this.directorCamera.lookAt(this.directorTarget);}
   setViewMode(mode){this.viewMode=mode==='preview'?'preview':'edit';this.guides.visible=this.viewMode==='edit';if(!this.exportState)this.resize();}
   setPlaying(v){this.playing=Boolean(v);}
   seek(t){this.playing=false;this.applyTime(t);this.onTime?.(this.time,false,this.activeShot);}
   selectShot(index){const shot=this.document?.shots?.[index];if(shot)this.seek(shot.start+.001);}
   reset(){this.seek(0);}
-  loop(now){const dt=Math.min((now-this.lastTime)/1000,.08);this.lastTime=now;if(this.playing&&this.document){let next=this.time+dt;if(next>=this.document.sequence.duration){next=this.document.sequence.duration;this.playing=false;}this.applyTime(next);this.onTime?.(this.time,this.playing,this.activeShot);}this.updateDirectorCamera();this.renderer.render(this.scene,this.viewMode==='preview'?this.shotCamera:this.directorCamera);}
-  async captureAtTime(time){const w=this.document?.sequence?.width||1920,h=this.document?.sequence?.height||1080;this.beginExport(w,h);try{this.renderExportFrame(time);return await new Promise(r=>this.canvas.toBlob(r,'image/png'));}finally{this.endExport();}}
-  beginExport(width,height){
-    if(this.exportState)return;
-    this.exportState={pixelRatio:this.renderer.getPixelRatio(),mode:this.viewMode,time:this.time,playing:this.playing};
-    this.playing=false; this.viewMode='preview'; this.guides.visible=false;
-    this.renderer.setPixelRatio(1); this.renderer.setSize(width,height,false);
-    this.shotCamera.aspect=width/Math.max(1,height); this.shotCamera.updateProjectionMatrix();
+  renderCanonicalFrame(time){
+    if(!this.document)return null;
+    const cameraState=this.applyTime(time);
+    this.shotCamera.aspect=this.getOutputAspect();
+    this.shotCamera.updateProjectionMatrix();
+    this.renderer.render(this.scene,this.shotCamera);
+    return cameraState;
   }
-  renderExportFrame(time){this.applyTime(time);this.renderer.render(this.scene,this.shotCamera);}
-  endExport(){
+  renderEditFrame(time=this.time){
+    if(!this.document)return;
+    this.applyTime(time);
+    this.updateDirectorCamera();
+    this.renderer.render(this.scene,this.directorCamera);
+  }
+  loop(now){
+    const dt=Math.min((now-this.lastTime)/1000,.08);this.lastTime=now;
+    if(this.playing&&this.document){
+      let next=this.time+dt;if(next>=this.document.sequence.duration){next=this.document.sequence.duration;this.playing=false;}
+      if(this.viewMode==='preview')this.renderCanonicalFrame(next);else this.applyTime(next);
+      this.onTime?.(this.time,this.playing,this.activeShot);
+    }
+    if(this.viewMode==='preview')this.renderCanonicalFrame(this.time);else this.renderEditFrame(this.time);
+  }
+  async captureAtTime(time){
+    const w=this.document?.sequence?.width||1920,h=this.document?.sequence?.height||1080;
+    this.beginCanonicalOutput(w,h);
+    try{this.renderCanonicalFrame(time);return await new Promise(r=>this.canvas.toBlob(r,'image/png'));}
+    finally{this.endCanonicalOutput();}
+  }
+  beginCanonicalOutput(width,height){
+    if(this.exportState)return;
+    const aspect=this.getOutputAspect();
+    const requestedAspect=width/Math.max(1,height);
+    if(Math.abs(requestedAspect-aspect)>1e-4)throw new Error('출력 해상도 비율이 프로젝트 출력 비율과 일치하지 않습니다.');
+    this.exportState={pixelRatio:this.renderer.getPixelRatio(),mode:this.viewMode,time:this.time,playing:this.playing};
+    this.playing=false;this.viewMode='preview';this.guides.visible=false;
+    this.renderer.setPixelRatio(1);this.renderer.setSize(width,height,false);
+    this.shotCamera.aspect=aspect;this.shotCamera.updateProjectionMatrix();
+  }
+  endCanonicalOutput(){
     if(!this.exportState)return;
-    const s=this.exportState; this.renderer.setPixelRatio(s.pixelRatio); this.exportState=null;
-    this.viewMode=s.mode; this.guides.visible=this.viewMode==='edit'; this.applyTime(s.time); this.playing=s.playing; this.resize();
+    const s=this.exportState;this.renderer.setPixelRatio(s.pixelRatio);this.exportState=null;
+    this.viewMode=s.mode;this.guides.visible=this.viewMode==='edit';this.applyTime(s.time);this.playing=s.playing;this.resize();
   }
   dispose(){this.renderer.setAnimationLoop(null);this.resizeObserver.disconnect();this.clearWorld();this.renderer.dispose();}
 }
