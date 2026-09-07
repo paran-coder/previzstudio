@@ -1,0 +1,76 @@
+{
+  "format": "previz-reference-pack",
+  "version": "1.0.0",
+  "sourcePrompt": "비 오는 골목, 두 명을 85mm로 4초 동안 따라간다.",
+  "continuityKey": "urban_alley:day:v1",
+  "environment": {
+    "type": "urban_alley",
+    "time": "day",
+    "weather": "rain"
+  },
+  "shot": {
+    "id": "shot_01",
+    "title": "Generated Shot",
+    "duration": 4,
+    "lens": 85,
+    "movement": "tracking",
+    "cameraStart": [
+      -3.5,
+      1.7,
+      5.5
+    ],
+    "cameraEnd": [
+      3.5,
+      1.7,
+      1.5
+    ],
+    "target": [
+      0,
+      1.25,
+      0
+    ]
+  },
+  "actors": [
+    {
+      "id": "actor_01",
+      "role": "subject_a",
+      "position": [
+        -2.25,
+        0,
+        0
+      ],
+      "action": "stand_confrontation"
+    },
+    {
+      "id": "actor_02",
+      "role": "subject_b",
+      "position": [
+        2.25,
+        0,
+        0
+      ],
+      "action": "stand_confrontation"
+    }
+  ],
+  "referenceFrames": [
+    {
+      "role": "start",
+      "progress": 0,
+      "suggestedFilename": "previz-shot01-start.png"
+    },
+    {
+      "role": "mid",
+      "progress": 0.5,
+      "suggestedFilename": "previz-shot01-mid.png"
+    },
+    {
+      "role": "end",
+      "progress": 1,
+      "suggestedFilename": "previz-shot01-end.png"
+    }
+  ],
+  "aiVideoReference": {
+    "intent": "Generated Shot; 85mm TRACKING; urban_alley day",
+    "continuityInstruction": "Keep actor identities, spatial relationships, environment and lighting continuity across the shot."
+  }
+}

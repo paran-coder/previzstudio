@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b0d10" />
+    <title>Previz Studio v1.0.0</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="app" class="app-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <div class="brand-mark" aria-hidden="true">P</div>
+          <div>
+            <div class="brand-row">
+              <strong>Previz Studio</strong>
+              <span class="version-badge">v1.0.0</span>
+            </div>
+            <span class="project-name">Warehouse Confrontation</span>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <div class="segmented" role="group" aria-label="Viewport mode">
+            <button class="segmented-button is-active" data-view="director">Director</button>
+            <button class="segmented-button" data-view="shot">Shot Camera</button>
+          </div>
+          <button id="show-json" class="button button-ghost">Scene JSON</button>
+          <button id="export-json" class="button button-secondary">Export JSON</button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <aside class="panel scene-panel" aria-label="Scene hierarchy">
+          <div class="panel-header">
+            <span>SCENE</span>
+            <span class="status-dot" title="Scene ready"></span>
+          </div>
+          <div id="scene-tree" class="scene-tree"></div>
+          <div class="panel-note">
+            <span class="eyebrow">CONTINUITY</span>
+            <strong>Scene locked</strong>
+            <p>재생성 시 배우·공간 ID를 유지합니다.</p>
+          </div>
+        </aside>
+
+        <section class="viewport-column">
+          <div class="viewport-card">
+            <div class="viewport-toolbar">
+              <div class="viewport-meta">
+                <span id="environment-label" class="pill">WAREHOUSE / NIGHT</span>
+                <span id="camera-label" class="pill pill-muted">35 MM · DOLLY</span>
+              </div>
+              <div class="viewport-actions">
+                <button id="capture-start" class="icon-button" title="Capture start frame" aria-label="Capture start frame">S</button>
+                <button id="capture-mid" class="icon-button" title="Capture middle frame" aria-label="Capture middle frame">M</button>
+                <button id="capture-end" class="icon-button" title="Capture end frame" aria-label="Capture end frame">E</button>
+              </div>
+            </div>
+            <div id="viewport" class="viewport" aria-label="3D previz viewport"></div>
+            <div class="safe-frame" aria-hidden="true">
+              <span class="safe-frame-label">2.39:1 SAFE</span>
+            </div>
+            <div class="viewport-footer">
+              <span id="render-status">Realtime 3D</span>
+              <span id="progress-readout">00:00.0 / 00:06.0</span>
+            </div>
+          </div>
+
+          <section class="timeline-card" aria-label="Shot timeline">
+            <div class="shot-strip">
+              <button class="shot-card is-selected">
+                <span class="shot-index">SHOT 01</span>
+                <strong>Confrontation Dolly</strong>
+                <span id="shot-duration-label">6.0 sec · 35mm</span>
+              </button>
+              <button class="shot-card shot-card-add" disabled title="Multi-shot editing is next scope">+ SHOT</button>
+            </div>
+            <div class="transport-row">
+              <button id="play" class="play-button" aria-label="Play previz">▶</button>
+              <button id="reset" class="transport-button" aria-label="Reset previz">↺</button>
+              <input id="timeline" class="timeline" type="range" min="0" max="1" step="0.001" value="0" aria-label="Shot timeline" />
+              <span id="timeline-time" class="mono">00:00.0</span>
+            </div>
+          </section>
+        </section>
+
+        <aside class="panel inspector-panel" aria-label="Shot inspector">
+          <div class="panel-header">
+            <span>INSPECTOR</span>
+            <span class="eyebrow">SHOT 01</span>
+          </div>
+
+          <div class="inspector-section">
+            <div class="section-title">Camera</div>
+            <label class="field">
+              <span>Lens</span>
+              <div class="field-input-suffix">
+                <input id="lens" type="number" min="18" max="120" step="1" value="35" />
+                <span>mm</span>
+              </div>
+            </label>
+            <label class="field">
+              <span>Duration</span>
+              <div class="field-input-suffix">
+                <input id="duration" type="number" min="1" max="30" step="0.5" value="6" />
+                <span>sec</span>
+              </div>
+            </label>
+            <label class="field">
+              <span>Dolly distance</span>
+              <div class="field-input-suffix">
+                <input id="distance" type="number" min="1" max="16" step="0.5" value="8" />
+                <span>m</span>
+              </div>
+            </label>
+          </div>
+
+          <div class="inspector-section">
+            <div class="section-title">Shot Intent</div>
+            <div class="intent-card">
+              <span class="intent-label">Blocking</span>
+              <strong>Move between actors</strong>
+              <p>두 배우의 간격을 유지하면서 카메라가 중앙축을 통과합니다.</p>
+            </div>
+          </div>
+
+          <div class="inspector-section">
+            <div class="section-title">Reference Export</div>
+            <div class="export-grid">
+              <button id="ref-start" class="button button-ghost">Start PNG</button>
+              <button id="ref-mid" class="button button-ghost">Mid PNG</button>
+              <button id="ref-end" class="button button-ghost">End PNG</button>
+              <button id="ref-manifest" class="button button-ghost manifest-button">Manifest JSON</button>
+            </div>
+          </div>
+        </aside>
+      </main>
+
+      <section class="prompt-dock" aria-label="Natural language scene generator">
+        <div class="prompt-context">
+          <span class="ai-dot" aria-hidden="true"></span>
+          <div>
+            <span class="eyebrow">AI DIRECTOR · LOCAL PROTOTYPE</span>
+            <strong>장면을 자연어로 연출하세요.</strong>
+          </div>
+        </div>
+        <textarea id="prompt" rows="2" spellcheck="false">밤의 창고. 두 사람이 서로 마주 서 있고 카메라가 두 사람 사이로 천천히 이동한다.</textarea>
+        <button id="generate" class="button button-primary">Generate Scene</button>
+      </section>
+    </div>
+
+    <dialog id="json-dialog" class="json-dialog">
+      <div class="dialog-header">
+        <div>
+          <span class="eyebrow">SCENE DOCUMENT</span>
+          <h2>Deterministic Scene JSON</h2>
+        </div>
+        <button id="close-json" class="icon-button" aria-label="Close JSON dialog">×</button>
+      </div>
+      <pre id="json-output"></pre>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>

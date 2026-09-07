@@ -1,0 +1,96 @@
+{
+  "version": "1.0.0",
+  "sourcePrompt": "비 오는 골목, 두 명을 85mm로 4초 동안 따라간다.",
+  "scene": {
+    "id": "scene_warehouse_confrontation",
+    "environment": {
+      "type": "urban_alley",
+      "time": "day",
+      "weather": "rain"
+    },
+    "continuityKey": "urban_alley:day:v1"
+  },
+  "actors": [
+    {
+      "id": "actor_01",
+      "role": "subject_a",
+      "position": [
+        -2.25,
+        0,
+        0
+      ],
+      "rotationY": -1.5707963267948966,
+      "action": "stand_confrontation"
+    },
+    {
+      "id": "actor_02",
+      "role": "subject_b",
+      "position": [
+        2.25,
+        0,
+        0
+      ],
+      "rotationY": 1.5707963267948966,
+      "action": "stand_confrontation"
+    }
+  ],
+  "lights": [
+    {
+      "id": "key_01",
+      "type": "rect",
+      "intensity": 2.5,
+      "position": [
+        -3,
+        5.5,
+        2
+      ]
+    },
+    {
+      "id": "fill_01",
+      "type": "rect",
+      "intensity": 1.5,
+      "position": [
+        4,
+        4,
+        -2
+      ]
+    },
+    {
+      "id": "practical_01",
+      "type": "point",
+      "intensity": 5,
+      "position": [
+        0,
+        5.8,
+        -3
+      ]
+    }
+  ],
+  "shots": [
+    {
+      "id": "shot_01",
+      "title": "Generated Shot",
+      "duration": 4,
+      "camera": {
+        "movement": "tracking",
+        "lens": 85,
+        "distance": 6,
+        "start": [
+          -3.5,
+          1.7,
+          5.5
+        ],
+        "end": [
+          3.5,
+          1.7,
+          1.5
+        ],
+        "target": [
+          0,
+          1.25,
+          0
+        ]
+      }
+    }
+  ]
+}
