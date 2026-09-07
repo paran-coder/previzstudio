@@ -1,60 +1,44 @@
-# Previz Studio v1.3.3 — Checklist
+# Previz Studio v1.3.4 — Recovery Checklist
 
-## Phase 0 — Docs
-- [x] `context-notes.md`
-- [x] `checklist.md`
-- [x] `README.md`
-- [x] `User manual.md`
+## Phase 0 — Documentation
+- [x] context-notes.md
+- [x] checklist.md
+- [x] README.md
+- [x] User manual.md
 
-## Phase 1 — Camera Safety Model
-- [x] finite vec3 validation
-- [x] scene bounds validation
-- [x] minimum Camera ↔ Target distance
-- [x] ground penetration validation
-- [x] static geometry interior validation implementation
-- [x] last-valid Camera snapshot per Shot
+## Phase 1 — Restore stable baseline
+- [ ] Rebase runtime on v1.3.4
+- [x] Preserve 30 FPS / 600-frame default
+- [x] Preserve canonical 16:9 Preview/PNG/MP4 path
+- [x] Preserve chase/fight deterministic parser
+- [x] Preserve Camera/Actor manual edit support
 
-## Phase 2 — Safe Editing
-- [x] Gizmo invalid move rollback
-- [x] numeric input invalid move rollback
-- [x] safe target editing
-- [x] Camera recovery action
-- [x] auto camera reset preserved
-- [x] full Shot Camera path sampling validation
+## Phase 2 — Remove regressions
+- [x] Remove global Scene clone Undo/Redo
+- [x] Remove per-frame Camera Safety/fallback logic
+- [x] Remove geometry obstacle scan from applyTime/render hot path
+- [x] Remove automatic fallback camera substitution
 
-## Phase 3 — Diagnostics
-- [x] Camera status UI
-- [x] invalid reason message
-- [x] out-of-frame subject warning
-- [x] Viewport preview diagnostic
-- [x] Shot-change Camera/Gizmo/Inspector re-sync
-- [x] recovery status hold for user visibility
+## Phase 3 — Reapply low-risk UX only
+- [x] Scene Tree selects Camera/Actor
+- [x] Inspector clearly shows selected object
+- [x] Viewport HUD shows selected object/mode
+- [x] World/Local transform space
+- [x] Collapsible prompt dock
 
-## Phase 4 — Regression
-- [x] Camera/Actor selection and Gizmo static regression
-- [x] Undo/Redo regression
-- [x] Prompt Dock regression
-- [x] default 30 FPS
-- [x] 20 sec = 600 frames
-- [x] 16:9 Canonical Preview
-- [x] Preview / PNG / MP4 shared validated camera state
-- [x] fight/chase parser regression
-
-## Phase 5 — Verification
+## Phase 4 — Regression verification
 - [x] JavaScript syntax check
-- [x] automated tests PASS
-- [x] all 600 default frames Camera Safety basic PASS
-- [x] invalid Camera unit tests PASS
-- [x] local `/api/health` + static serving PASS
-- [x] Vite build contract static test PASS
-- [ ] local Vite production build — npm registry timeout
-- [ ] Chromium interaction smoke — localhost access blocked by environment policy
-- [ ] Production Vercel static-geometry Camera recovery check — 사용자 배포 후 확인
+- [x] Unit/contract tests
+- [x] 20 s × 30 FPS = 600 frame evaluation
+- [x] Canonical preview/export contract
+- [x] Repeated Edit ↔ Preview state-transition contract test (state mutation/fallback 없음)
+- [x] Manual Camera transform remains valid
+- [x] Manual Actor transform remains valid
+- [x] No v1.3.2 Undo/Redo code remains
+- [x] No v1.3.3 Camera Safety hot-path code remains
 
-## Result
-- Automated tests: **38/38 PASS**
-- JavaScript syntax: **PASS**
-- 20 sec @ 30 FPS = **600 Camera states PASS**
-- Camera NaN / bounds / ground / minimum target distance tests: **PASS**
-- Local health/static serving: **PASS**
-- Three.js static geometry collision: implemented; Production interaction verification pending
+## Production acceptance
+- [ ] Edit View ↔ Camera Preview repeated switching shows no black screen
+- [ ] Gizmo edit → Camera Preview remains visible
+- [ ] 20-second 30 FPS MP4 renders normally
+- [ ] Preview framing matches MP4

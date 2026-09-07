@@ -5,7 +5,7 @@ import { validateSceneDocument } from '../src/scene-schema.js';
 
 test('밤의 도로 추격 프롬프트를 20초 4샷 시퀀스로 만든다',()=>{
   const doc=directPromptFallback('밤의 도로. 한 사람이 도망치고 다른 사람이 뒤따라 쫓아간다. 카메라는 역동적으로 두 사람 사이를 오가며 추격한다.');
-  assert.equal(doc.version,'1.3.3');
+  assert.equal(doc.version,'1.3.4');
   assert.equal(doc.sequence.duration,20);
   assert.equal(doc.sequence.fps,30);
   assert.equal(doc.sequence.width,1920);
@@ -35,7 +35,7 @@ test('지원되는 표현만 추출하는 일반 프롬프트도 유효한 장�
 
 test('두 사람 격투와 다양한 각도를 2인 FIGHT 4샷으로 해석한다',()=>{
   const doc=directPromptFallback('두 사람이 격렬하게 하는 격투씬, 카메라가 다양한 각도로 익사이팅한 앵글로 따라간다.');
-  assert.equal(doc.version,'1.3.3');
+  assert.equal(doc.version,'1.3.4');
   assert.equal(doc.actors.length,2);
   assert.equal(doc.actors[0].actions[0].type,'fight');
   assert.equal(doc.actors[1].actions[0].type,'fight');

@@ -1,53 +1,48 @@
-# Previz Studio v1.3.3 — 사용자 매뉴얼
+# Previz Studio v1.3.4 — 사용자 매뉴얼
 
-## 1. 기본 프로젝트
-- 1920 × 1080
-- 기본 30 FPS
-- 기본 20초
-- 600 frames
+## 1. 이번 버전의 목적
+v1.3.4는 기능 추가 버전이 아니라 복구 버전입니다. v1.3.4에서 정상 동작하던 편집 뷰, 카메라 프리뷰, 30 FPS 렌더 흐름을 기준으로 안정성을 되찾는 것이 목표입니다.
 
-## 2. Camera 편집
-Camera를 선택하면 Position, Rotation, Height, Distance, Target, Target Offset, Lens를 수정할 수 있습니다.
+## 2. 기본 출력
+- 해상도: 1920 × 1080
+- 기본 FPS: 30
+- 기본 길이: 20초
+- 기본 총 프레임: 600
+- FPS 선택: 24 / 25 / 30 / 60
 
-## 3. Camera Safety
-Camera를 움직일 때 다음 상태를 자동 검사합니다.
+## 3. 편집
+Scene Tree에서 Camera 또는 Actor를 선택합니다. 선택한 대상은 Inspector와 Transform Gizmo에 연결됩니다.
 
-- 숫자가 유효한가
-- 지면 아래로 내려갔는가
-- Camera와 Target이 너무 가까운가
-- Camera가 static set geometry 내부에 들어갔는가
+Camera 편집:
+- 위치
+- 회전
+- 타겟
+- 렌즈
 
-위험한 Camera transform은 저장하지 않고 마지막 정상 Camera 위치로 되돌립니다.
+Actor 편집:
+- 위치
+- 회전
 
-## 4. 카메라 상태
-Inspector의 `카메라 상태`에서 현재 상태를 확인합니다.
+Transform 공간은 World / Local로 선택할 수 있습니다.
 
-- `안전 · 프레임 유효`
-- `경고 · 피사체가 프레임 밖입니다.`
-- `복구됨 · 카메라가 벽/지면 내부로 이동했습니다.`
+## 4. 프롬프트 독
+프롬프트 입력 영역은 접거나 펼칠 수 있습니다. 접힌 상태에서도 장면 만들기 동작은 유지됩니다.
 
-## 5. 카메라 복구
-`카메라 복구`는 해당 Shot의 마지막 정상 수동 Camera transform을 복원합니다.
+## 5. 카메라 프리뷰
+카메라 프리뷰는 최종 출력과 동일한 canonical 16:9 frame을 사용합니다. 편집 뷰의 자유 카메라와 최종 카메라 프리뷰를 구분해서 사용합니다.
 
-`자동 구도로 되돌리기`는 수동 Camera를 제거하고 자동 Camera 계산으로 복귀합니다.
+## 6. 이번 버전에서 없는 기능
+- 전체 Scene Undo/Redo
+- 자동 Camera collision rollback
+- 매 프레임 Camera Safety 검사
+- Camera Keyframe 편집
 
-## 6. Transform Gizmo
-- `W`: 이동
-- `E`: 회전
-- `T`: Camera Target
-- `World / Local`: Transform space
+이 기능들은 안정화 후 별도 버전에서 다시 설계합니다.
 
-잘못된 위치로 Gizmo를 드래그하면 자동으로 마지막 정상 위치로 복귀합니다.
-
-## 7. Undo / Redo
-- `Cmd/Ctrl + Z`: 실행 취소
-- `Cmd/Ctrl + Shift + Z`: 다시 실행
-
-## 8. Camera Preview
-Camera Preview는 최종 렌더와 동일한 validated Canonical 16:9 Camera state를 사용합니다.
-
-## 9. FPS / 영상 출력
-기본 30 FPS이며 24 / 25 / 30 / 60 FPS를 지원합니다. 20초 / 30 FPS에서는 600프레임을 렌더합니다.
-
-## 10. AI
-v1.3.3에서는 외부 AI를 사용하지 않습니다. Camera Safety와 렌더 안정성은 AI가 아닌 3D 엔진이 담당합니다.
+## 7. Production 테스트
+배포 후 다음만 확인하면 됩니다.
+1. 편집 뷰 → 카메라 프리뷰 → 편집 뷰를 여러 번 반복합니다.
+2. Camera Gizmo로 위치를 수정한 뒤 카메라 프리뷰를 확인합니다.
+3. Actor Gizmo로 위치를 수정한 뒤 타임라인을 재생합니다.
+4. 20초 프리비즈 영상을 렌더합니다.
+5. 렌더 파일이 30 FPS / 600 frames인지 확인합니다.

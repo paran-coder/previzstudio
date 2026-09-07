@@ -1,46 +1,14 @@
 # Changelog
 
-## v1.3.3 — Camera Safety & Editing Stability
+## v1.3.4
 
-- Camera position / target finite-number validation
-- Camera ↔ Target minimum distance validation
-- ground / scene bounds validation
-- Three.js static geometry interior collision check
-- invalid Gizmo/numeric edits rollback to last safe Camera
-- Camera path sampling validation across the full Shot
-- `카메라 복구` action and diagnostic status UI
-- subject-out-of-frame warning
-- Shot transition Camera/Gizmo/Inspector re-sync
-- Preview / PNG / MP4 validated Canonical Camera regression preserved
-- external AI remains optional; not required for Camera Safety
+### Recovery
+- Restored v1.3.1 runtime as the stable baseline.
+- Removed v1.3.2 global Scene-clone Undo/Redo.
+- Removed v1.3.3 per-frame Camera Safety/fallback logic.
+- Reapplied only low-risk UX: Scene Tree Camera/Actor selection, selection HUD, World/Local transform space and collapsible prompt dock.
+- Preserved 30 FPS / 600-frame default and canonical 16:9 Preview/PNG/MP4 pipeline.
 
-## v1.3.2 — Camera Editing UX
-
-- Camera/Actor 선택 상태를 Scene Tree / Viewport / Inspector에서 통일
-- Inspector 최상단에 선택 오브젝트 hierarchy 추가
-- Camera/Actor contextual Transform Inspector
-- Transform mode: 이동 / 회전 / 타겟
-- World / Local Transform space 추가
-- Camera Target mode에서 Local space 비활성화 및 World 고정
-- Camera/Actor Transform Undo / Redo 스택 추가
-- Gizmo drag를 하나의 Undo transaction으로 기록
-- `Cmd/Ctrl+Z`, `Cmd/Ctrl+Shift+Z` 단축키 추가
-- Prompt Dock 접기/펼치기 추가
-- 접힌 상태에서도 한 줄 Prompt command bar와 장면 생성 유지
-- Scene Tree selected/current-shot hierarchy 보정
-- Viewport selection HUD 추가
-- Timeline/Inspector typography 소폭 보정
-- v1.3.1 30 FPS / 600 frame / Canonical Preview=Render 구조 회귀 유지
-
-## v1.3.1
-
-- 기본 FPS 30
-- 24 / 25 / 30 / 60 FPS 선택
-- 20초 30 FPS = 600 frames
-
-## v1.3.0
-
-- Camera/Actor Transform Gizmo
-- Camera position / height / distance / target editing
-- manual camera override
-- fight prompt / FIGHT action / multi-shot directing
+### Validation target
+- Repeated Edit View / Camera Preview switching must not produce a black viewport.
+- Gizmo edits must survive view switching and continue rendering.

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#06080a" />
-  <title>Previz Studio v1.3.3 — 3D 프리비즈 레퍼런스</title>
+  <title>Previz Studio v1.3.4 — 3D 프리비즈 레퍼런스</title>
   <meta name="description" content="인물 동작과 카메라 무빙을 3D 프리비즈로 만들고 AI 영상 생성용 레퍼런스 영상으로 렌더합니다." />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Previz Studio — 자연어로 만드는 3D 프리비즈" />
@@ -25,7 +25,7 @@
     <div class="브랜드">
       <div class="브랜드마크">P</div>
       <div class="브랜드텍스트">
-        <div class="브랜드행"><strong>Previz Studio</strong><span class="버전">v1.3.3</span></div>
+        <div class="브랜드행"><strong>Previz Studio</strong><span class="버전">v1.3.4</span></div>
         <span class="브랜드설명">AI 영상 레퍼런스용 3D 프리비즈</span>
       </div>
     </div>
@@ -57,7 +57,7 @@
             <div class="샷요약상단"><span id="viewport-shot-id" class="샷아이디">SHOT 01</span><strong id="viewport-shot-title">후방 3/4 와이드</strong></div>
             <div class="뷰포트메타"><span id="environment-label" class="필">도로 · 밤</span><span id="camera-label" class="필">24mm · 돌리 아웃</span></div>
           </div>
-          <div class="엔진상태"><span id="renderer-status" class="엔진뱃지">렌더러 준비 중</span><span id="build-status" class="엔진뱃지 빌드뱃지">APP v1.3.3</span></div>
+          <div class="엔진상태"><span id="renderer-status" class="엔진뱃지">렌더러 준비 중</span><span id="build-status" class="엔진뱃지 빌드뱃지">APP v1.3.4</span></div>
         </div>
         <div id="view-status" class="뷰상태"><strong>편집 작업 시점</strong><span>최종 출력 화면이 아닙니다.</span></div>
         <div id="selection-hud" class="선택HUD"><span id="hud-object">CAMERA · SHOT 01</span><strong id="hud-mode">이동 · WORLD</strong></div>
@@ -99,11 +99,7 @@
               <button class="공간버튼 활성" data-transform-space="world">World</button>
               <button class="공간버튼" data-transform-space="local">Local</button>
             </div>
-            <div class="히스토리버튼들">
-              <button id="undo-edit" class="아이콘버튼" title="실행 취소 (Ctrl/Cmd+Z)" aria-label="실행 취소">↶</button>
-              <button id="redo-edit" class="아이콘버튼" title="다시 실행 (Ctrl/Cmd+Shift+Z)" aria-label="다시 실행">↷</button>
-            </div>
-          </div>
+</div>
         </div>
       </section>
       <section id="current-shot-section" class="속성섹션 현재샷섹션">
@@ -136,12 +132,6 @@
             <label><span>X</span><input id="target-offset-x" type="number" step="0.05"></label>
             <label><span>Y</span><input id="target-offset-y" type="number" step="0.05"></label>
             <label><span>Z</span><input id="target-offset-z" type="number" step="0.05"></label>
-          </div>
-          <div id="camera-safety-card" class="카메라안전 안전" role="status" aria-live="polite">
-            <div class="카메라안전헤더"><span id="camera-safety-dot" class="안전점"></span><strong id="camera-safety-label">카메라 안전</strong><span id="camera-safety-code" class="안전코드">OK</span></div>
-            <p id="camera-safety-message">안전 · 프레임 유효</p>
-            <small id="camera-safety-detail">Position / Target 검증 완료</small>
-            <button id="recover-camera" class="버튼 고스트 넓게 작은버튼" type="button">카메라 복구</button>
           </div>
           <button id="reset-camera-auto" class="버튼 고스트 넓게 작은버튼">자동 구도로 되돌리기</button>
         </div>
