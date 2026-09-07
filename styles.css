@@ -89,3 +89,7 @@
 @media(max-width:930px){.앱.프롬프트접힘{display:block}.프롬프트독.접힘{grid-template-columns:1fr}.프롬프트독.접힘 .프롬프트맥락{display:flex}.프롬프트독.접힘 textarea{white-space:normal}}
 @media(prefers-reduced-motion:reduce){.앱{transition:none}}
 .공간버튼:disabled{opacity:.35;cursor:not-allowed}
+
+/* v1.3.3 Camera Safety */
+.카메라안전{margin-top:12px;padding:10px;border:1px solid #34404a;border-radius:5px;background:#0c1217;display:grid;gap:6px}.카메라안전헤더{display:grid;grid-template-columns:9px minmax(0,1fr) auto;align-items:center;gap:7px}.안전점{width:7px;height:7px;border-radius:50%;background:#7f8a93}.카메라안전헤더 strong{font-size:11px}.안전코드{font:600 9px ui-monospace,monospace;color:var(--muted)}.카메라안전 p{margin:0;font-size:10.5px;line-height:1.45;color:var(--text-2)}.카메라안전 small{font:500 9px/1.4 ui-monospace,monospace;color:var(--muted)}.카메라안전.안전{border-color:#354631;background:#101711}.카메라안전.안전 .안전점{background:var(--accent)}.카메라안전.경고{border-color:#66552f;background:#1b170d}.카메라안전.경고 .안전점{background:#e3b95f}.카메라안전.경고 p{color:#f0d9a0}.카메라안전.복구{border-color:#5d456d;background:#18121d}.카메라안전.복구 .안전점{background:var(--purple)}.카메라안전.복구 p{color:#d8c8ee}.카메라안전.위험{border-color:#713d3d;background:#1c1010}.카메라안전.위험 .안전점{background:#ff7f77}.카메라안전.위험 p{color:#ffc5bf}.카메라안전 #recover-camera{margin-top:2px}.카메라안전.안전 #recover-camera{opacity:.55}
+.뷰상태.카메라경고{border-color:#66552f}.뷰상태.카메라경고 strong{color:#e3b95f}.뷰상태.카메라복구{border-color:#5d456d}.뷰상태.카메라복구 strong{color:#d8c8ee}

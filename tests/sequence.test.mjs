@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { directPromptFallback } from '../src/director-fallback.js';
-import { activeShotAtTime, evaluateActorAtTime, evaluateCameraAtTime, deriveEditOverview, fitAspectRect, outputAspect, ensureManualCamera, cameraEditSnapshot, resetManualCamera, translateActorPath, rotateActorPath } from '../src/sequence.js';
+import { activeShotAtTime, evaluateActorAtTime, evaluateCameraAtTime, deriveEditOverview, fitAspectRect, outputAspect, ensureManualCamera, cameraEditSnapshot, resetManualCamera, translateActorPath, rotateActorPath, validateCameraStateBasic, cameraTargetDistance } from '../src/sequence.js';
 
 const doc=directPromptFallback('밤의 도로. 한 사람이 도망치고 다른 사람이 뒤따라 쫓아간다. 카메라는 역동적으로 두 사람 사이를 오가며 추격한다.');
 
@@ -144,4 +144,34 @@ test('actor transform helper는 전체 action path와 회전을 보존하며 이
   assert.deepEqual(actor.actions[0].to,[oldTo[0]+2,oldTo[1],oldTo[2]-1]);
   rotateActorPath(local,actor.id,Math.PI);
   assert.ok(Math.abs(actor.rotationY-Math.PI)<1e-9);
+});
+
+
+test('Camera Safety 기본 검증은 NaN, 지면 침투, 극단 좌표, 너무 가까운 Target을 차단한다',()=>{
+  assert.equal(validateCameraStateBasic({position:[0,1.6,-5],target:[0,1.3,0],lens:35}).ok,true);
+  assert.equal(validateCameraStateBasic({position:[NaN,1.6,-5],target:[0,1.3,0],lens:35}).code,'non_finite');
+  assert.equal(validateCameraStateBasic({position:[0,.05,-5],target:[0,1.3,0],lens:35}).code,'below_ground');
+  assert.equal(validateCameraStateBasic({position:[999,1.6,-5],target:[0,1.3,0],lens:35}).code,'out_of_bounds');
+  assert.equal(validateCameraStateBasic({position:[0,1.6,-5],target:[0,1.6,-4.7],lens:35}).code,'target_too_close');
+  assert.ok(cameraTargetDistance([0,1.6,-5],[0,1.6,0])>=5);
+});
+
+test('기본 30fps 600프레임 Camera state는 Camera Safety 기본 규칙을 모두 통과한다',()=>{
+  const total=Math.round(doc.sequence.duration*doc.sequence.fps);
+  assert.equal(total,600);
+  for(let frame=0;frame<total;frame++){
+    const state=evaluateCameraAtTime(doc,frame/doc.sequence.fps);
+    const result=validateCameraStateBasic(state);
+    assert.equal(result.ok,true,`frame ${frame}: ${result.message}`);
+  }
+});
+
+test('manual Camera endpoint가 지면 아래로 편집되면 safety validator가 즉시 실패한다',()=>{
+  const local=directPromptFallback('밤의 도로. 한 사람이 도망치고 다른 사람이 뒤따라 쫓아간다.');
+  const manual=ensureManualCamera(local,0);
+  manual.start=[manual.start[0],0.05,manual.start[2]];
+  const state=evaluateCameraAtTime(local,local.shots[0].start+1/local.sequence.fps,{ignoreHandheld:true});
+  const result=validateCameraStateBasic(state);
+  assert.equal(result.ok,false);
+  assert.equal(result.code,'below_ground');
 });

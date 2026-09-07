@@ -1,4 +1,4 @@
-import { evaluateActorAtTime, evaluateCameraAtTime, deriveEditOverview, fitAspectRect, outputAspect } from './sequence.js';
+import { evaluateActorAtTime, evaluateCameraAtTime, deriveEditOverview, fitAspectRect, outputAspect, validateCameraStateBasic, resetManualCamera } from './sequence.js';
 import { BUILD_LABEL } from './build-info.js';
 
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
@@ -7,13 +7,17 @@ const sub=(a,b)=>vec(a.x-b.x,a.y-b.y,a.z-b.z); const mul=(a,s)=>vec(a.x*s,a.y*s,
 const cross=(a,b)=>vec(a.y*b.z-a.z*b.y,a.z*b.x-a.x*b.z,a.x*b.y-a.y*b.x); const len=a=>Math.hypot(a.x,a.y,a.z)||1;const norm=a=>mul(a,1/len(a));
 
 export class CanvasSceneEngine {
-  constructor(container){this.container=container;this.canvas=document.createElement('canvas');this.ctx=this.canvas.getContext('2d',{alpha:false});container.replaceChildren(this.canvas);this.document=null;this.time=0;this.playing=false;this.viewMode='edit';this.onTime=null;this.lastTime=performance.now();this.exportState=null;this.directorCamera={position:[7.5,8.5,-15],target:[0,1,0],lens:42};this.directorUserAdjusted=false;this.stageRect={width:1,height:1,left:0,top:0};this.resizeObserver=new ResizeObserver(()=>this.resize());this.resizeObserver.observe(container);this.resize();this.loop=this.loop.bind(this);requestAnimationFrame(this.loop);}
+  constructor(container){this.container=container;this.canvas=document.createElement('canvas');this.ctx=this.canvas.getContext('2d',{alpha:false});container.replaceChildren(this.canvas);this.document=null;this.time=0;this.playing=false;this.viewMode='edit';this.onTime=null;this.lastTime=performance.now();this.exportState=null;this.directorCamera={position:[7.5,8.5,-15],target:[0,1,0],lens:42};this.directorUserAdjusted=false;this.stageRect={width:1,height:1,left:0,top:0};this.onCameraSafety=null;this.cameraSafety={ok:true,level:'safe',code:'ok',message:'안전 · 프레임 유효',recovered:false};this.lastSafeFrameByShot=new Map();this.resizeObserver=new ResizeObserver(()=>this.resize());this.resizeObserver.observe(container);this.resize();this.loop=this.loop.bind(this);requestAnimationFrame(this.loop);}
   get rendererLabel(){return `Canvas 대체 렌더러 · ${BUILD_LABEL}`;}
   setEditSelection(){}
   setCameraEditKey(){}
   setTransformMode(){}
   setTransformSpace(){}
-  refreshEditing(){this.applyTime(this.time);}
+  emitCameraSafety(status){this.cameraSafety={ok:status?.ok!==false,level:status?.level||'safe',code:status?.code||'ok',message:status?.message||'안전 · 프레임 유효',recovered:Boolean(status?.recovered),shotIndex:status?.shotIndex||0,key:status?.key||'start'};this.onCameraSafety?.(this.cameraSafety);return this.cameraSafety;}
+  getCameraSafety(){return {...this.cameraSafety};}
+  validateManualPaths(){for(let i=0;i<(this.document?.shots?.length||0);i++){const shot=this.document.shots[i];if(!shot.camera.manual?.enabled)continue;for(let k=0;k<=24;k++){const time=shot.start+(shot.end-shot.start)*(k/24),state=evaluateCameraAtTime(this.document,time,{ignoreHandheld:true}),check=validateCameraStateBasic(state);if(!check.ok){resetManualCamera(this.document,i);return this.emitCameraSafety({...check,level:'recovered',recovered:true,shotIndex:i,message:`복구됨 · ${check.message}`});}}}return this.cameraSafety;}
+  recoverCameraEdit(shotIndex=0){resetManualCamera(this.document,shotIndex);this.applyTime(this.time);return this.emitCameraSafety({ok:true,level:'recovered',code:'manual_recovery',message:'복구됨 · 자동 Camera 상태로 복원했습니다.',recovered:true,shotIndex});}
+  refreshEditing(){const safety=this.validateManualPaths();this.applyTime(this.time);return safety;}
   getOutputAspect(){return outputAspect(this.document);}
   resize(){
     if(this.exportState)return;
@@ -22,14 +26,14 @@ export class CanvasSceneEngine {
     this.setSize(rect.width,rect.height,true,rect.left,rect.top); this.stageRect=rect;
   }
   setSize(w,h,updateStyle=true,left=0,top=0){const dpr=this.exportState?1:Math.min(devicePixelRatio||1,2);this.canvas.width=Math.round(w*dpr);this.canvas.height=Math.round(h*dpr);if(updateStyle){this.canvas.style.position='absolute';this.canvas.style.width=`${w}px`;this.canvas.style.height=`${h}px`;this.canvas.style.left=`${left}px`;this.canvas.style.top=`${top}px`;}this.ctx.setTransform(dpr,0,0,dpr,0,0);this.width=w;this.height=h;}
-  loadDocument(doc){this.document=doc;this.time=0;this.playing=false;this.directorUserAdjusted=false;const view=deriveEditOverview(doc);this.directorCamera={position:[...view.position],target:[...view.target],lens:42};this.applyTime(0);this.resize();}
+  loadDocument(doc){this.document=doc;this.time=0;this.playing=false;this.directorUserAdjusted=false;this.lastSafeFrameByShot.clear();const view=deriveEditOverview(doc);this.directorCamera={position:[...view.position],target:[...view.target],lens:42};this.applyTime(0);this.resize();}
   setViewMode(mode){this.viewMode=mode==='preview'?'preview':'edit';if(!this.exportState)this.resize();}
   setPlaying(v){this.playing=Boolean(v);}
   seek(t){this.playing=false;this.applyTime(t);this.onTime?.(this.time,false,this.activeShot);}
   selectShot(index){const s=this.document?.shots?.[index];if(s)this.seek(s.start+.001);}
   reset(){this.seek(0);}
   getDirectorCamera(){return this.directorCamera;}
-  applyTime(t){if(!this.document)return;this.time=clamp(t,0,this.document.sequence.duration);const c=evaluateCameraAtTime(this.document,this.time);this.activeShot=c.shot;this.cameraState=c;this.actorStates=this.document.actors.map(a=>({actor:a,state:evaluateActorAtTime(this.document,a,this.time)}));}
+  applyTime(t){if(!this.document)return;this.time=clamp(t,0,this.document.sequence.duration);let c=evaluateCameraAtTime(this.document,this.time),check=validateCameraStateBasic(c);if(!check.ok){const saved=this.lastSafeFrameByShot.get(c.shot.id);if(saved)c={...saved,shot:c.shot};else{const manual=c.shot.camera.manual;if(manual?.enabled){delete c.shot.camera.manual;const auto=evaluateCameraAtTime(this.document,this.time,{ignoreHandheld:true});c.shot.camera.manual=manual;if(validateCameraStateBasic(auto).ok)c=auto;}}check={...check,level:'recovered',recovered:true,message:`복구됨 · ${check.message}`};}else this.lastSafeFrameByShot.set(c.shot.id,{...c,position:[...c.position],target:[...c.target]});this.emitCameraSafety({...check,shotIndex:Math.max(0,this.document.shots.findIndex(s=>s.id===c.shot.id))});this.activeShot=c.shot;this.cameraState=c;this.actorStates=this.document.actors.map(a=>({actor:a,state:evaluateActorAtTime(this.document,a,this.time)}));return c;}
   basis(cam){const p=fromA(cam.position),tar=fromA(cam.target),f=norm(sub(tar,p)),r=norm(cross(f,vec(0,1,0))),u=norm(cross(r,f));return {p,f,r,u};}
   project(point,cam){const b=this.basis(cam),rel=sub(point,b.p),z=dot(rel,b.f);if(z<=.08)return null;const x=dot(rel,b.r),y=dot(rel,b.u);const f=(this.height*.5)/Math.tan((2*Math.atan(36/(2*cam.lens)))/2);return {x:this.width*.5+x/z*f,y:this.height*.5-y/z*f,z,scale:f/z};}
   line3(a,b,cam,color,width=1,dash=[]){const pa=this.project(fromA(a),cam),pb=this.project(fromA(b),cam);if(!pa||!pb)return;const c=this.ctx;c.save();c.strokeStyle=color;c.lineWidth=width;c.setLineDash(dash);c.beginPath();c.moveTo(pa.x,pa.y);c.lineTo(pb.x,pb.y);c.stroke();c.restore();}

@@ -1,4 +1,4 @@
-# Previz Studio v1.3.2 — Checklist
+# Previz Studio v1.3.3 — Checklist
 
 ## Phase 0 — Docs
 - [x] `context-notes.md`
@@ -6,55 +6,55 @@
 - [x] `README.md`
 - [x] `User manual.md`
 
-## Phase 1 — Selection & Inspector
-- [x] 선택 오브젝트 헤더
-- [x] Scene Tree selection state
-- [x] Camera / Actor selection sync
-- [x] Inspector Camera/Actor contextual sections
+## Phase 1 — Camera Safety Model
+- [x] finite vec3 validation
+- [x] scene bounds validation
+- [x] minimum Camera ↔ Target distance
+- [x] ground penetration validation
+- [x] static geometry interior validation implementation
+- [x] last-valid Camera snapshot per Shot
 
-## Phase 2 — Transform UX
-- [x] 이동 / 회전 / 타겟 mode selector
-- [x] W / E / T shortcuts
-- [x] World / Local toggle
-- [x] numeric transform inputs sync with Gizmo
-- [x] Camera target editing state
+## Phase 2 — Safe Editing
+- [x] Gizmo invalid move rollback
+- [x] numeric input invalid move rollback
+- [x] safe target editing
+- [x] Camera recovery action
+- [x] auto camera reset preserved
+- [x] full Shot Camera path sampling validation
 
-## Phase 3 — Undo / Redo
-- [x] transform snapshot stack
-- [x] Undo button + Cmd/Ctrl+Z
-- [x] Redo button + Cmd/Ctrl+Shift+Z
-- [x] Camera manual override state restored correctly
+## Phase 3 — Diagnostics
+- [x] Camera status UI
+- [x] invalid reason message
+- [x] out-of-frame subject warning
+- [x] Viewport preview diagnostic
+- [x] Shot-change Camera/Gizmo/Inspector re-sync
+- [x] recovery status hold for user visibility
 
-## Phase 4 — Prompt Dock
-- [x] collapse / expand control
-- [x] collapsed command bar
-- [x] prompt text preserved
-- [x] keyboard shortcut preserved
-
-## Phase 5 — UI Polish
-- [x] Inspector hierarchy
-- [x] Timeline typography readability
-- [x] Scene Tree inactive/active contrast
-- [x] Camera/Actor semantic color consistency
-- [x] reduced-motion/focus states
-
-## Phase 6 — Regression
+## Phase 4 — Regression
+- [x] Camera/Actor selection and Gizmo static regression
+- [x] Undo/Redo regression
+- [x] Prompt Dock regression
 - [x] default 30 FPS
 - [x] 20 sec = 600 frames
-- [x] 24/25/30/60 FPS selector
-- [x] Canonical 16:9 Camera Preview
-- [x] Preview / PNG / MP4 shared canonical frame
-- [x] fight prompt 2 actors / FIGHT / multi-shot
-- [x] Camera/Actor manual edit regression
+- [x] 16:9 Canonical Preview
+- [x] Preview / PNG / MP4 shared validated camera state
+- [x] fight/chase parser regression
 
-## Phase 7 — Verification
+## Phase 5 — Verification
 - [x] JavaScript syntax check
 - [x] automated tests PASS
-- [x] Vite build contract PASS (static contract; local npm install timeout)
-- [ ] Production Vercel Gizmo interaction check — 사용자 배포 후 확인
+- [x] all 600 default frames Camera Safety basic PASS
+- [x] invalid Camera unit tests PASS
+- [x] local `/api/health` + static serving PASS
+- [x] Vite build contract static test PASS
+- [ ] local Vite production build — npm registry timeout
+- [ ] Chromium interaction smoke — localhost access blocked by environment policy
+- [ ] Production Vercel static-geometry Camera recovery check — 사용자 배포 후 확인
 
 ## Result
-- Automated tests: **34/34 PASS**
+- Automated tests: **38/38 PASS**
 - JavaScript syntax: **PASS**
-- Local Chromium runtime smoke: 환경 정책이 localhost/file 접근을 차단해 미실행
-- Local Vite production build: npm registry timeout으로 미실행
+- 20 sec @ 30 FPS = **600 Camera states PASS**
+- Camera NaN / bounds / ground / minimum target distance tests: **PASS**
+- Local health/static serving: **PASS**
+- Three.js static geometry collision: implemented; Production interaction verification pending

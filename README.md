@@ -1,23 +1,36 @@
-# Previz Studio v1.3.2
+# Previz Studio v1.3.3
 
 영화·광고 제작자와 AI 영상 크리에이터를 위한 웹 기반 3D 프리비즈 도구입니다.
 
-## v1.3.2 핵심
+## v1.3.3 핵심
 
-이번 버전은 새 카메라 기능을 추가하기보다 **Camera / Actor Editing UX를 실제 편집 흐름으로 정리**합니다.
+이번 버전은 외부 AI 연결이 아니라 **Camera Safety & Editing Stability**에 집중합니다.
 
-- 선택 오브젝트가 Scene Tree / Viewport / Inspector에서 일관되게 표시
-- Camera / Actor contextual Inspector
-- Transform Gizmo mode
-  - 이동
-  - 회전
-  - 타겟(Camera)
-- World / Local Transform space
-- Camera/Actor 숫자 입력과 Gizmo 동기화
-- Undo / Redo 기본 스택
-- Prompt Dock 접기/펼치기
-- Timeline / Inspector / Scene Tree typography hierarchy 보정
-- v1.3.1의 30 FPS / 16:9 Canonical Preview / Preview=Render 구조 유지
+- Camera position / target 숫자 검증
+- Camera ↔ Target 최소 거리 보장
+- Camera 지면 침투 방지
+- static set geometry 내부 Camera 감지
+- 위험한 Camera 이동은 마지막 정상 위치로 자동 복구
+- `카메라 복구` 버튼
+- 피사체가 프레임 밖이면 Camera warning 표시
+- Shot 전환 시 Camera / Gizmo / Inspector 상태 재동기화
+- Preview / PNG / MP4가 동일한 validated Canonical Camera 사용
+- v1.3.2 Camera/Actor Gizmo, World/Local, Undo/Redo, Prompt Dock 유지
+- 기본 30 FPS, 20초 = 600프레임 유지
+
+## AI를 붙이지 않는 이유
+
+외부 AI는 자연어를 더 유연하게 해석하는 데는 도움이 되지만 Camera가 벽 안에 들어가거나 Target이 비정상적이어서 검은 화면이 되는 문제를 해결하지 않습니다. v1.3.3은 이 문제를 deterministic 3D engine에서 해결합니다.
+
+## Camera Safety
+
+Camera 편집 상태는 세 단계로 구분합니다.
+
+- **안전**: 정상 Camera transform
+- **경고**: Camera는 유효하지만 주요 피사체가 프레임 밖
+- **복구**: Camera가 지면/geometry/비정상 좌표로 들어가 마지막 정상 상태로 자동 복구됨
+
+Camera Transform Inspector에서 상태와 복구 버튼을 확인할 수 있습니다.
 
 ## 실행
 
@@ -33,62 +46,27 @@ npm run build
 npm run preview
 ```
 
-## Transform 편집
+## 기존 편집 기능
 
-선택한 오브젝트에 따라 오른쪽 Inspector가 달라집니다.
+- Camera/Actor 선택
+- Camera: 위치 / 회전 / 타겟 / 거리 / 높이 / 렌즈
+- Actor: 위치 / 회전
+- `W` 이동 / `E` 회전 / `T` Camera Target
+- World / Local
+- Undo / Redo
+- Prompt Dock 접기/펼치기
+- 24 / 25 / 30 / 60 FPS
 
-### Camera
-- 위치 X/Y/Z
-- 회전
-- 높이
-- 피사체 거리
-- 타겟
-- 타겟 오프셋
-- 렌즈
-- 시작 / 끝 Camera transform
+## 다음 단계
 
-### Actor
-- 위치 X/Y/Z
-- 회전
-- Action 상태
-
-단축키:
-
-```text
-W = 이동
-E = 회전
-T = 카메라 타겟
-Cmd/Ctrl + Z = 실행 취소
-Cmd/Ctrl + Shift + Z = 다시 실행
-```
-
-Transform space는 `World / Local`로 전환할 수 있습니다.
-
-## Prompt Dock
-
-프롬프트는 하단에서 접을 수 있습니다. 접힌 상태에서는 한 줄 command bar만 남아 Viewport와 Timeline 공간을 더 확보합니다. 다시 펼쳐도 입력한 문장은 유지됩니다.
-
-## FPS / 출력
-
-기본값은 30 FPS이며 24 / 25 / 30 / 60 FPS를 지원합니다.
-
-20초 기본 시퀀스는 30 FPS에서 600프레임입니다. Camera Preview / PNG / MP4/WebM은 동일한 Canonical Frame 경로를 사용합니다.
-
-## 다음 버전
-
-v1.4.0에서는 Camera Keyframe Editing을 추가할 예정입니다.
-
-- Position
-- Target
-- Lens
-- Start / Mid / End keyframes
+v1.4.0에서는 Camera Keyframe Editing을 `Position + Target + Lens`부터 추가합니다.
 
 ## 검증 상태
 
-- JavaScript syntax check: PASS
-- Automated tests: **34/34 PASS**
-- 20 sec @ 30 FPS = 600 frame regression: PASS
-- Canonical Preview / PNG / Video shared path: PASS
-- Camera/Actor Transform regression: PASS
-- 현재 실행 환경에서는 Chromium의 localhost/file 접근이 정책상 차단되어 UI click smoke test를 실행하지 못했습니다.
-- npm registry timeout으로 local Vite production build 재실행은 하지 못했습니다. Vercel 배포 후 실제 Gizmo/Undo/Prompt collapse 조작을 최종 확인합니다.
+- JavaScript syntax: PASS
+- Automated tests: **38/38 PASS**
+- 20 sec @ 30 FPS: 600 Camera states PASS
+- invalid numeric / ground / bounds / Camera-Target distance tests: PASS
+- local health/static server: PASS
+- npm registry timeout으로 local Vite build는 재실행하지 못함
+- Chromium localhost 접근이 환경 정책으로 차단되어 실제 Three.js Gizmo collision smoke는 Vercel 배포 후 확인

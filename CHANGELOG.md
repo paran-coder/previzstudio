@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.3.3 — Camera Safety & Editing Stability
+
+- Camera position / target finite-number validation
+- Camera ↔ Target minimum distance validation
+- ground / scene bounds validation
+- Three.js static geometry interior collision check
+- invalid Gizmo/numeric edits rollback to last safe Camera
+- Camera path sampling validation across the full Shot
+- `카메라 복구` action and diagnostic status UI
+- subject-out-of-frame warning
+- Shot transition Camera/Gizmo/Inspector re-sync
+- Preview / PNG / MP4 validated Canonical Camera regression preserved
+- external AI remains optional; not required for Camera Safety
+
 ## v1.3.2 — Camera Editing UX
 
 - Camera/Actor 선택 상태를 Scene Tree / Viewport / Inspector에서 통일

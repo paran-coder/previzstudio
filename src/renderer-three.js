@@ -1,4 +1,4 @@
-import { evaluateActorAtTime, evaluateCameraAtTime, deriveEditOverview, fitAspectRect, outputAspect, cameraEditSnapshot, ensureManualCamera, translateActorPath, rotateActorPath } from './sequence.js';
+import { evaluateActorAtTime, evaluateCameraAtTime, deriveEditOverview, fitAspectRect, outputAspect, cameraEditSnapshot, ensureManualCamera, resetManualCamera, translateActorPath, rotateActorPath, validateCameraStateBasic } from './sequence.js';
 import { BUILD_LABEL } from './build-info.js';
 
 const THREE_VERSION = '0.185.1';
@@ -27,6 +27,7 @@ export class ThreeSceneEngine {
     this.directorTarget=new T.Vector3(0,1.1,-8); this.orbitYaw=.72; this.orbitPitch=.20; this.orbitRadius=17;
     this.dragging=false; this.dragStart=null; this.directorUserAdjusted=false; this.stageRect={width:1,height:1,left:0,top:0};
     this.editSelection={type:'camera',id:'camera'}; this.cameraEditKey='start'; this.transformMode='translate'; this.transformSpace='world'; this.gizmoDragging=false; this.onDocumentEdit=null; this.onTransformStart=null; this.onTransformEnd=null;
+    this.onCameraSafety=null;this.cameraSafety={ok:true,level:'safe',code:'ok',message:'안전 · 프레임 유효',recovered:false};this.lastSafetySignature='';this.lastSafeManualByShot=new Map();this.lastSafeFrameByShot=new Map();this.gizmoManualBefore=undefined;this.safetyHoldUntil=0;
     this.renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,powerPreference:'high-performance'});
     this.renderer.setClearColor(0x070a0e,1); this.renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
     this.renderer.shadowMap.enabled=true; this.renderer.shadowMap.type=T.PCFSoftShadowMap;
@@ -40,6 +41,86 @@ export class ThreeSceneEngine {
   get rendererLabel(){return `Three.js r${THREE_VERSION.replace('0.','')} · WebGL2 · ${BUILD_LABEL}`;}
   get canvas(){return this.renderer.domElement;}
 
+
+  cloneManual(manual){return manual?JSON.parse(JSON.stringify(manual)):null;}
+  safetySignature(status){return [status?.level,status?.code,status?.message,status?.shotIndex,status?.key,status?.recovered?'1':'0'].join('|');}
+  emitCameraSafety(status){
+    const now=performance.now();
+    if(this.cameraSafety?.level==='recovered'&&now<this.safetyHoldUntil&&status?.level==='safe')return this.cameraSafety;
+    const next={ok:status?.ok!==false,level:status?.level||'safe',code:status?.code||'ok',message:status?.message||'안전 · 프레임 유효',recovered:Boolean(status?.recovered),shotIndex:Number.isInteger(status?.shotIndex)?status.shotIndex:this.currentShotIndex(),key:status?.key||this.cameraEditKey,detail:status?.detail||''};
+    if(next.level==='recovered')this.safetyHoldUntil=now+2600;
+    this.cameraSafety=next;const signature=this.safetySignature(next);if(signature!==this.lastSafetySignature){this.lastSafetySignature=signature;this.onCameraSafety?.(next);}return next;
+  }
+  getCameraSafety(){return {...this.cameraSafety};}
+  obstacleAt(position){
+    if(!Array.isArray(position)||position.length!==3)return null;
+    const T=this.THREE,p=new T.Vector3(...position),box=new T.Box3();let hit=null;
+    this.world.traverse(obj=>{if(hit||!obj.userData?.cameraObstacle)return;box.setFromObject(obj).expandByScalar(.10);if(box.containsPoint(p))hit=obj;});
+    return hit;
+  }
+  validateCameraState(cameraState,{checkFraming=false}={}){
+    const basic=validateCameraStateBasic(cameraState);if(!basic.ok)return basic;
+    const hit=this.obstacleAt(cameraState.position);if(hit)return {ok:false,level:'danger',code:'inside_geometry',message:'카메라가 세트 Geometry 내부에 있습니다.',detail:hit.name||'static geometry'};
+    if(checkFraming){
+      const warning=this.subjectFramingWarning(cameraState);if(warning)return warning;
+    }
+    return {ok:true,level:'safe',code:'ok',message:'안전 · 프레임 유효',distance:basic.distance};
+  }
+  subjectFramingWarning(cameraState){
+    const T=this.THREE,shot=cameraState?.shot;if(!shot)return null;
+    const ids=[shot.camera.targetActorId,shot.camera.secondaryActorId].filter(Boolean);if(!ids.length&&this.document?.actors?.[0])ids.push(this.document.actors[0].id);
+    if(!ids.length)return null;
+    const visible=ids.some(id=>{
+      const state=evaluateActorAtTime(this.document,id,this.time);if(!state)return false;
+      const point=new T.Vector3(state.position[0],state.position[1]+1.35,state.position[2]);const projected=point.project(this.shotCamera);
+      return Number.isFinite(projected.x)&&Number.isFinite(projected.y)&&Number.isFinite(projected.z)&&projected.z>=-1&&projected.z<=1&&Math.abs(projected.x)<=1.12&&Math.abs(projected.y)<=1.12;
+    });
+    return visible?null:{ok:true,level:'warning',code:'subject_out_of_frame',message:'경고 · 주요 피사체가 카메라 프레임 밖에 있습니다.'};
+  }
+  validateShotCameraPath(shotIndex,{samples=28,checkFraming=false}={}){
+    const shot=this.document?.shots?.[shotIndex];if(!shot)return {ok:false,level:'danger',code:'missing_shot',message:'Camera Shot을 찾을 수 없습니다.'};
+    for(let i=0;i<=samples;i++){
+      const time=shot.start+(shot.end-shot.start)*(i/samples),state=evaluateCameraAtTime(this.document,time,{ignoreHandheld:true}),result=this.validateCameraState(state,{checkFraming:false});
+      if(!result.ok)return {...result,shotIndex,time};
+    }
+    if(checkFraming){const time=Math.min(shot.end,Math.max(shot.start,this.time));const state=evaluateCameraAtTime(this.document,time);return this.validateCameraState(state,{checkFraming:true});}
+    return {ok:true,level:'safe',code:'ok',message:'안전 · Camera path 유효',shotIndex};
+  }
+  rememberSafeManual(shotIndex){const manual=this.document?.shots?.[shotIndex]?.camera?.manual;if(manual?.enabled)this.lastSafeManualByShot.set(shotIndex,this.cloneManual(manual));}
+  restoreSafeManual(shotIndex,fallbackManual=undefined){
+    const shot=this.document?.shots?.[shotIndex];if(!shot)return false;
+    if(fallbackManual!==undefined){if(fallbackManual)shot.camera.manual=this.cloneManual(fallbackManual);else resetManualCamera(this.document,shotIndex);return true;}
+    const saved=this.lastSafeManualByShot.get(shotIndex);if(saved)shot.camera.manual=this.cloneManual(saved);else resetManualCamera(this.document,shotIndex);return true;
+  }
+  validateManualKey(shotIndex,key=this.cameraEditKey,{fallbackManual=undefined}={}){
+    const time=cameraEditSnapshot(this.document,shotIndex,key)?.time??this.time,state=evaluateCameraAtTime(this.document,time,{ignoreHandheld:true}),result=this.validateCameraState(state);
+    if(result.ok)return result;
+    this.restoreSafeManual(shotIndex,fallbackManual);const recovered={...result,level:'recovered',recovered:true,shotIndex,key,message:`복구됨 · ${result.message}`};this.emitCameraSafety(recovered);return recovered;
+  }
+  validateManualEdit(shotIndex,{fallbackManual=undefined,key=this.cameraEditKey,source='edit'}={}){
+    const result=this.validateShotCameraPath(shotIndex);if(result.ok){this.rememberSafeManual(shotIndex);return this.emitCameraSafety({...result,key,recovered:false});}
+    this.restoreSafeManual(shotIndex,fallbackManual);
+    const restored=this.validateShotCameraPath(shotIndex);let usedAuto=false;
+    if(!restored.ok&&this.document?.shots?.[shotIndex]?.camera?.manual?.enabled){resetManualCamera(this.document,shotIndex);usedAuto=true;}
+    const recovered={...result,level:'recovered',recovered:true,key,message:`복구됨 · ${result.message}${usedAuto?' · 자동 구도로 복귀했습니다.':''}`};
+    this.emitCameraSafety(recovered);return recovered;
+  }
+  recoverCameraEdit(shotIndex=this.currentShotIndex()){
+    this.restoreSafeManual(shotIndex);let check=this.validateShotCameraPath(shotIndex),usedAuto=false;if(!check.ok&&this.document?.shots?.[shotIndex]?.camera?.manual?.enabled){resetManualCamera(this.document,shotIndex);usedAuto=true;check=this.validateShotCameraPath(shotIndex);}
+    this.refreshPathGuides();this.applyTime(this.time);this.syncEditProxy();
+    const status=this.emitCameraSafety({ok:true,level:'recovered',code:'manual_recovery',message:usedAuto?'복구됨 · 마지막 수동 Camera가 유효하지 않아 자동 구도로 복귀했습니다.':'복구됨 · 마지막 정상 Camera 상태를 복원했습니다.',recovered:true,shotIndex,key:this.cameraEditKey});
+    this.onDocumentEdit?.({type:'camera-recovery',shotIndex});return status;
+  }
+  safeFallbackCamera(time,invalidState){
+    const shot=invalidState?.shot,idx=shot?this.document.shots.findIndex(s=>s.id===shot.id):-1;
+    const frameSaved=shot?this.lastSafeFrameByShot.get(shot.id):null;if(frameSaved)return {...frameSaved,shot};
+    if(idx>=0&&shot.camera.manual?.enabled){
+      const manual=shot.camera.manual;delete shot.camera.manual;const autoState=evaluateCameraAtTime(this.document,time,{ignoreHandheld:true});shot.camera.manual=manual;
+      const valid=this.validateCameraState(autoState);if(valid.ok)return autoState;
+    }
+    return {...invalidState,position:[0,3,-8],target:[0,1,0],lens:Number.isFinite(invalidState?.lens)?invalidState.lens:35};
+  }
+
   setupTransformControls(TransformControls){
     const T=this.THREE;
     this.cameraProxy=new T.PerspectiveCamera(45,1,.05,50);this.cameraProxy.name='camera-edit-proxy';
@@ -51,7 +132,7 @@ export class ThreeSceneEngine {
     this.cameraProxy.visible=false;this.targetProxy.visible=false;this.actorProxy.visible=false;this.cameraTargetLine.visible=false;
     this.transformControls=new TransformControls(this.directorCamera,this.canvas);
     const helper=this.transformControls.getHelper?.()||this.transformControls;this.transformHelper=helper;this.scene.add(helper);helper.visible=false;
-    this.transformControls.addEventListener('dragging-changed',e=>{this.gizmoDragging=Boolean(e.value);if(this.gizmoDragging)this.onTransformStart?.();else {this.onTransformEnd?.();this.syncEditProxy();}});
+    this.transformControls.addEventListener('dragging-changed',e=>{this.gizmoDragging=Boolean(e.value);if(this.gizmoDragging){const idx=this.currentShotIndex();this.gizmoManualBefore=this.editSelection.type==='camera'?this.cloneManual(this.document?.shots?.[idx]?.camera?.manual):undefined;this.onTransformStart?.();}else {if(this.editSelection.type==='camera'){const idx=this.currentShotIndex(),safety=this.validateManualEdit(idx,{fallbackManual:this.gizmoManualBefore,key:this.cameraEditKey,source:'gizmo-end'});this.refreshPathGuides();this.applyTime(this.time);if(safety.recovered)this.onDocumentEdit?.({type:'camera',shotIndex:idx,safety});}this.gizmoManualBefore=undefined;this.onTransformEnd?.();this.syncEditProxy();}});
     this.transformControls.addEventListener('objectChange',()=>this.commitGizmoChange());
   }
   currentShotIndex(){const id=this.activeShot?.id;const i=this.document?.shots?.findIndex(s=>s.id===id);return i>=0?i:0;}
@@ -87,6 +168,7 @@ export class ThreeSceneEngine {
       this.refreshPathGuides();this.applyTime(this.time);this.onDocumentEdit?.({type:'actor',id:actor.id});return;
     }
     const manual=ensureManualCamera(this.document,idx),key=this.cameraEditKey; if(!manual)return;
+    const beforeManual=this.cloneManual(manual);
     const pkey=key==='end'?'end':'start',tkey=key==='end'?'targetEnd':'targetStart';
     if(this.transformMode==='target'){
       const snap=cameraEditSnapshot(this.document,idx,key);
@@ -103,9 +185,13 @@ export class ThreeSceneEngine {
         const target=this.cameraProxy.position.clone().add(forward.multiplyScalar(dist));manual.targetMode='free';manual[tkey]=target.toArray();manual.targetOffset=[0,0,0];
       }
     }
-    this.refreshPathGuides();this.applyTime(this.time);this.onDocumentEdit?.({type:'camera',shotIndex:idx});
+    const safety=this.validateManualKey(idx,key,{fallbackManual:beforeManual});
+    this.refreshPathGuides();this.applyTime(this.time);this.syncEditProxy();this.onDocumentEdit?.({type:'camera',shotIndex:idx,safety});
   }
-  refreshEditing(){this.refreshPathGuides();this.applyTime(this.time);this.syncEditProxy();}
+  refreshEditing(){
+    let safety=this.cameraSafety;if(this.document?.shots?.length){for(let i=0;i<this.document.shots.length;i++){if(this.document.shots[i].camera.manual?.enabled){const result=this.validateManualEdit(i,{key:i===this.currentShotIndex()?this.cameraEditKey:'start',source:'numeric'});if(result.recovered)safety=result;}}}
+    this.refreshPathGuides();this.applyTime(this.time);this.syncEditProxy();return safety;
+  }
 
   bindControls(){
     const c=this.canvas;
@@ -137,7 +223,7 @@ export class ThreeSceneEngine {
   disposeObject(obj){obj.geometry?.dispose?.();const m=obj.material;if(Array.isArray(m))m.forEach(x=>x.dispose?.());else m?.dispose?.();obj.material?.map?.dispose?.();}
   clearWorld(){for(const g of [this.world,this.guides]){g.traverse(o=>this.disposeObject(o));g.clear();}this.actorRigs.clear();}
   mat(color,rough=.72,metal=.05){return new this.THREE.MeshStandardMaterial({color,roughness:rough,metalness:metal});}
-  addBox(size,pos,color,parent=this.world){const T=this.THREE,m=new T.Mesh(new T.BoxGeometry(...size),this.mat(color));m.position.set(...pos);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
+  addBox(size,pos,color,parent=this.world){const T=this.THREE,m=new T.Mesh(new T.BoxGeometry(...size),this.mat(color));m.position.set(...pos);m.castShadow=true;m.receiveShadow=true;m.userData.cameraObstacle=true;m.name='static-set';parent.add(m);return m;}
 
   createMannequin(index){
     const T=this.THREE, root=new T.Group(); root.name=`actor-rig-${index}`;
@@ -169,10 +255,10 @@ export class ThreeSceneEngine {
     else {this.addBox([5,8,28],[-7,4,2],0x20262c);this.addBox([5,9,28],[7,4.5,2],0x1c2228);}
   }
   createCar(index,pos,rot){
-    const T=this.THREE,g=new T.Group(),col=index%2?0x48515a:0x38424b;const body=new T.Mesh(new T.BoxGeometry(3.7,.72,1.7),this.mat(col,.45,.18));body.position.y=.65;body.castShadow=true;g.add(body);const cabin=new T.Mesh(new T.BoxGeometry(1.9,.58,1.5),this.mat(0x28313a,.32,.12));cabin.position.set(.15,1.18,0);cabin.castShadow=true;g.add(cabin);for(const x of [-1.25,1.25])for(const z of [-.82,.82]){const w=new T.Mesh(new T.CylinderGeometry(.32,.32,.2,14),this.mat(0x111416,.95));w.rotation.x=Math.PI/2;w.position.set(x,.35,z);g.add(w);}g.position.set(...pos);g.rotation.y=rot;this.world.add(g);return g;
+    const T=this.THREE,g=new T.Group(),col=index%2?0x48515a:0x38424b;g.userData.cameraObstacle=true;g.name='vehicle-blockout';const body=new T.Mesh(new T.BoxGeometry(3.7,.72,1.7),this.mat(col,.45,.18));body.position.y=.65;body.castShadow=true;g.add(body);const cabin=new T.Mesh(new T.BoxGeometry(1.9,.58,1.5),this.mat(0x28313a,.32,.12));cabin.position.set(.15,1.18,0);cabin.castShadow=true;g.add(cabin);for(const x of [-1.25,1.25])for(const z of [-.82,.82]){const w=new T.Mesh(new T.CylinderGeometry(.32,.32,.2,14),this.mat(0x111416,.95));w.rotation.x=Math.PI/2;w.position.set(x,.35,z);g.add(w);}g.position.set(...pos);g.rotation.y=rot;this.world.add(g);return g;
   }
 
-  async loadDocument(doc){this.document=doc;this.time=0;this.playing=false;this.directorUserAdjusted=false;this.clearWorld();this.buildWorld();this.frameEditOverview();this.buildGuides();this.applyTime(0);this.resize();}
+  async loadDocument(doc){this.document=doc;this.time=0;this.playing=false;this.directorUserAdjusted=false;this.lastSafeManualByShot.clear();this.lastSafeFrameByShot.clear();this.clearWorld();this.buildWorld();for(let i=0;i<this.document.shots.length;i++){if(this.document.shots[i].camera.manual?.enabled)this.validateManualEdit(i,{key:'start',source:'load'});}this.frameEditOverview();this.buildGuides();this.applyTime(0);this.resize();}
   buildWorld(){
     const T=this.THREE,env=this.document.scene.environment;this.scene.background=new T.Color(env.time==='night'?0x06090d:0x8d9aa7);this.scene.fog=new T.Fog(env.time==='night'?0x06090d:0x8d9aa7,28,88);
     const hemi=new T.HemisphereLight(env.time==='night'?0x7f9abd:0xdbe8f5,0x18130f,env.time==='night'?.55:1.6);this.world.add(hemi);
@@ -203,7 +289,7 @@ export class ThreeSceneEngine {
     this.orbitYaw=Math.atan2(offset.x,offset.z);
     this.updateDirectorCamera();
   }
-  applyTime(time){if(!this.document)return;this.time=clamp(time,0,this.document.sequence.duration);for(const actor of this.document.actors)this.applyActorPose(actor,evaluateActorAtTime(this.document,actor,this.time));this.updateLabels();const c=evaluateCameraAtTime(this.document,this.time);this.shotCamera.position.set(...c.position);this.shotCamera.lookAt(new this.THREE.Vector3(...c.target));this.shotCamera.fov=2*Math.atan(36/(2*c.lens))*180/Math.PI;this.shotCamera.aspect=this.getOutputAspect();this.shotCamera.updateProjectionMatrix();this.activeShot=c.shot;if(!this.gizmoDragging)this.syncEditProxy();return c;}
+  applyTime(time){if(!this.document)return;this.time=clamp(time,0,this.document.sequence.duration);for(const actor of this.document.actors)this.applyActorPose(actor,evaluateActorAtTime(this.document,actor,this.time));this.updateLabels();let c=evaluateCameraAtTime(this.document,this.time);let safety=this.validateCameraState(c);if(!safety.ok){c=this.safeFallbackCamera(this.time,c);safety={...safety,level:'recovered',recovered:true,message:`복구됨 · ${safety.message}`};}this.shotCamera.position.set(...c.position);this.shotCamera.lookAt(new this.THREE.Vector3(...c.target));this.shotCamera.fov=2*Math.atan(36/(2*c.lens))*180/Math.PI;this.shotCamera.aspect=this.getOutputAspect();this.shotCamera.updateProjectionMatrix();this.shotCamera.updateMatrixWorld(true);this.activeShot=c.shot;if(safety.ok){const frameWarning=this.validateCameraState(c,{checkFraming:true});safety=frameWarning;this.lastSafeFrameByShot.set(c.shot.id,{...c,position:[...c.position],target:[...c.target]});}this.emitCameraSafety({...safety,shotIndex:this.currentShotIndex(),key:this.cameraEditKey,recovered:Boolean(safety.recovered)});if(!this.gizmoDragging)this.syncEditProxy();return c;}
   updateDirectorCamera(){const cp=Math.cos(this.orbitPitch);this.directorCamera.position.set(this.directorTarget.x+Math.sin(this.orbitYaw)*cp*this.orbitRadius,this.directorTarget.y+Math.sin(this.orbitPitch)*this.orbitRadius,this.directorTarget.z+Math.cos(this.orbitYaw)*cp*this.orbitRadius);this.directorCamera.lookAt(this.directorTarget);}
   setViewMode(mode){this.viewMode=mode==='preview'?'preview':'edit';this.guides.visible=this.viewMode==='edit';if(!this.exportState)this.resize();this.syncEditProxy();}
   setPlaying(v){this.playing=Boolean(v);}
