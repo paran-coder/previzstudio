@@ -33,8 +33,16 @@
 @media(max-width:1180px){.작업공간{grid-template-columns:200px minmax(500px,1fr) 280px}.프롬프트독{grid-template-columns:210px 1fr 130px}}
 @media(max-width:930px){html,body{overflow:auto}.앱{height:auto;min-height:100vh;display:block}.상단바{min-height:64px;position:sticky;top:0;z-index:20}.작업공간{display:block;padding:8px}.씬패널,.속성패널{margin-bottom:8px;max-height:none}.중앙열{height:720px;margin-bottom:8px}.프롬프트독{position:sticky;bottom:0;margin:8px;grid-template-columns:1fr}.프롬프트맥락{display:none}.프롬프트독 textarea{height:62px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001ms!important;transition-duration:.001ms!important}}
-/* v1.3.0 deployment integrity metadata */
+/* v1.3.1 deployment integrity metadata */
 .빌드뱃지{color:#7f8b95;border-color:#25303a;background:rgba(8,11,14,.76);font-size:9px}
 
-/* v1.3.0 Transform Editing */
+/* v1.3.1 Transform Editing */
 .트랜스폼섹션{background:#10171d}.섹션제목행{display:flex;align-items:center;justify-content:space-between}.섹션제목행 .섹션제목{margin-bottom:0}.편집상태{font:650 9px ui-monospace,monospace;color:var(--muted);border:1px solid var(--line);padding:4px 6px;border-radius:4px}.편집상태.수동{color:var(--accent);border-color:#526a36;background:#151e12}.세로필드{grid-template-columns:1fr;gap:6px}.선택입력{width:100%;min-height:34px;border:1px solid #36424c;border-radius:5px;background:#0d1217;color:var(--text);padding:6px 8px;font-size:11px}.기즈모모드{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:10px 0}.기즈모버튼,.미니버튼{min-height:31px;border:1px solid #34404a;background:#151d24;color:var(--text-2);border-radius:4px;font-size:10px;font-weight:650;cursor:pointer}.기즈모버튼.활성,.미니버튼.활성{border-color:#66794a;color:var(--accent);background:#182117}.기즈모버튼:disabled{opacity:.35;cursor:not-allowed}.기즈모버튼 kbd{font-size:8px;color:var(--muted)}.미니세그먼트{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:8px 0 10px}.좌표그리드{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:6px 0 10px}.좌표그리드 label{display:grid;grid-template-columns:16px minmax(0,1fr);align-items:center;border:1px solid #303b45;background:#0d1217;border-radius:4px;overflow:hidden}.좌표그리드 span{font:600 9px ui-monospace,monospace;color:var(--muted);text-align:center}.좌표그리드 input{min-width:0;width:100%;border:0;background:transparent;color:var(--text);padding:7px 4px;font:600 10px ui-monospace,monospace;outline:0}.보조라벨{margin-top:10px;color:var(--muted);font-size:10px;font-weight:650}.작은버튼{min-height:31px;margin-top:8px;font-size:10px}.도움말{margin:8px 0 0;color:var(--muted);font-size:10px;line-height:1.45}.액션.fight{background:#291b1b;border-color:#6a3636;color:#ffd0ca}
+
+/* v1.3.1 Frame-rate controls */
+.프레임카운트{font:600 10px/1 ui-monospace,monospace;color:var(--muted)}
+.렌더설정카드{display:block;padding:9px;border:1px solid #2c3741;border-radius:5px;background:#0d1217}
+.렌더설정카드>span{display:block;color:var(--muted);font-size:10px}
+.FPS선택{width:100%;margin-top:4px;border:0;background:transparent;color:var(--text);font:650 11px ui-monospace,monospace;outline:0;cursor:pointer}
+.FPS선택:focus-visible{box-shadow:0 0 0 1px var(--accent)}
+.렌더설정 .출력설정{grid-column:1/-1}

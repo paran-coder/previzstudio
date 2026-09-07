@@ -1,4 +1,5 @@
-export const SCENE_VERSION = '1.3.0';
+export const SCENE_VERSION = '1.3.1';
+export const SUPPORTED_FPS = [24, 25, 30, 60];
 
 export const CAMERA_MOVES = [
   'static', 'dolly_in', 'dolly_out', 'track_follow', 'track_between', 'orbit', 'handheld_follow'
@@ -20,7 +21,7 @@ export const SCENE_JSON_SCHEMA = {
       required: ['duration', 'fps', 'width', 'height'],
       properties: {
         duration: { type: 'number', minimum: 1, maximum: 120 },
-        fps: { type: 'number', minimum: 1, maximum: 60 },
+        fps: { type: 'number', enum: SUPPORTED_FPS },
         width: { type: 'integer', minimum: 320, maximum: 3840 },
         height: { type: 'integer', minimum: 180, maximum: 2160 },
       },
@@ -130,7 +131,7 @@ export function validateSceneDocument(doc) {
   if (!Array.isArray(doc?.shots) || doc.shots.length < 1) errors.push('샷이 최소 1개 필요합니다.');
   const duration = Number(doc?.sequence?.duration || 0);
   if (!(duration >= 1 && duration <= 120)) errors.push('시퀀스 길이가 올바르지 않습니다.');
-  if (doc?.sequence?.fps !== 24) errors.push('v1.3.0 기본 시퀀스 FPS는 24여야 합니다.');
+  if (!SUPPORTED_FPS.includes(doc?.sequence?.fps)) errors.push('지원 FPS는 24 / 25 / 30 / 60 중 하나여야 합니다.');
   for (const [i, actor] of (doc?.actors || []).entries()) {
     for (const [j, action] of (actor.actions || []).entries()) {
       if (!ACTOR_ACTIONS.includes(action?.type)) errors.push(`배우 ${i+1} 액션 ${j+1}: 지원하지 않는 동작입니다.`);

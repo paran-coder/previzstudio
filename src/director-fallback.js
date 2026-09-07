@@ -38,7 +38,7 @@ function chaseScene(prompt,text) {
   return {
     version:SCENE_VERSION,
     sourcePrompt:prompt,
-    sequence:{duration,fps:24,width:1920,height:1080},
+    sequence:{duration,fps:30,width:1920,height:1080},
     scene:{id:'scene_road_chase_01',continuityKey:`road:night:${rainy?'rain':'clear'}:chase:v4`,environment:{type:'road',time:has(text,['낮','day'])?'day':'night',weather:rainy?'rain':'clear',assetId:'road_procedural'}},
     actors:[
       { id:'actor_01',role:'runner',assetId:'actor_neutral',position:[-.55,0,-12],rotationY:0,actions:[
@@ -78,7 +78,7 @@ function fightScene(prompt,text) {
   const dynamic=has(text,['다양한 각도','여러 각도','다양한 앵글','익사이팅','역동','dynamic','exciting','핸드헬드']);
   const a1=[-1.05,0,-.25], a2=[1.05,0,.25];
   return {
-    version:SCENE_VERSION,sourcePrompt:prompt,sequence:{duration,fps:24,width:1920,height:1080},
+    version:SCENE_VERSION,sourcePrompt:prompt,sequence:{duration,fps:30,width:1920,height:1080},
     scene:{id:`scene_${env}_fight_01`,continuityKey:`${env}:${night?'night':'day'}:clear:fight:v1`,environment:{type:env,time:night?'night':'day',weather:has(text,['비','rain'])?'rain':'clear',assetId:`${env}_procedural`}},
     actors:[
       {id:'actor_01',role:'fighter_a',assetId:'actor_neutral',position:a1,rotationY:Math.PI/2,actions:[action('fight',0,duration,a1,[-.72,0,.32],{rotationFrom:Math.PI/2,rotationTo:Math.PI/2,targetId:'actor_02',phaseOffset:0})]},
@@ -119,7 +119,7 @@ function genericScene(prompt,text) {
     shot('shot_04','핸드헬드 푸시','가까이 밀고 들어가며 에너지를 높인다.',t(15),duration,'handheld_follow',lens||50,[-2.4,1.65,-4.2],[-1.6,1.55,-2.8],[0,1.35,1],{distance:4,targetActorId:'actor_01',secondaryActorId:count>1?'actor_02':undefined,handheldAmount:.55}),
   ]:[shot('shot_01','메인 샷','지원되는 동작과 카메라 명령을 하나의 샷으로 표현한다.',0,duration,movement,lens,[4.5,2.1,-5],[4.0,2.0,2],[0,1.3,2],{distance:7,targetActorId:'actor_01',secondaryActorId:count>1?'actor_02':undefined,handheldAmount:has(text,['핸드헬드','역동적','익사이팅'])?.35:0})];
   return {
-    version:SCENE_VERSION,sourcePrompt:prompt,sequence:{duration,fps:24,width:1920,height:1080},
+    version:SCENE_VERSION,sourcePrompt:prompt,sequence:{duration,fps:30,width:1920,height:1080},
     scene:{id:`scene_${env}_01`,continuityKey:`${env}:${night?'night':'day'}:clear:v4`,environment:{type:env,time:night?'night':'day',weather:has(text,['비','rain'])?'rain':'clear',assetId:`${env}_procedural`}},
     actors,
     props:[],lights:[{id:'ambient_01',type:'ambient',intensity:night?.6:1.1,position:[0,5,0]},{id:'key_01',type:'directional',intensity:2.2,position:[-5,8,5]}],

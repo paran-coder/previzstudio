@@ -17,3 +17,11 @@ test('샷들이 시퀀스 20초를 끊김 없이 채운다',()=>{
   for(let i=1;i<doc.shots.length;i++)assert.equal(doc.shots[i].start,doc.shots[i-1].end);
   assert.equal(doc.shots.at(-1).end,doc.sequence.duration);
 });
+
+test('지원되지 않는 FPS는 validation이 실패한다',()=>{
+  const doc=cloneSceneDocument(directPromptFallback('도로에서 한 사람이 달린다.'));
+  doc.sequence.fps=29;
+  const result=validateSceneDocument(doc);
+  assert.equal(result.ok,false);
+  assert.match(result.errors.join(' '),/지원 FPS/);
+});

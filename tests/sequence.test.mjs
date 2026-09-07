@@ -52,14 +52,29 @@ test('샷 경계 양쪽에서 카메라 evaluator가 정확한 활성 샷을 선
   assert.notDeepEqual(before.position,after.position);
 });
 
-test('480개 24fps 프레임 전체에서 카메라 transform이 유한하고 샷 컷이 유지된다',()=>{
+test('600개 30fps 프레임 전체에서 카메라 transform이 유한하고 샷 컷이 유지된다',()=>{
+  assert.equal(doc.sequence.fps,30);
   const counts=new Map();
-  for(let i=0;i<480;i++){
-    const t=i/24,cam=evaluateCameraAtTime(doc,t);
+  const totalFrames=Math.round(doc.sequence.duration*doc.sequence.fps);
+  assert.equal(totalFrames,600);
+  for(let i=0;i<totalFrames;i++){
+    const t=i/doc.sequence.fps,cam=evaluateCameraAtTime(doc,t);
     for(const v of [...cam.position,...cam.target,cam.lens]) assert.ok(Number.isFinite(v));
     counts.set(cam.shot.id,(counts.get(cam.shot.id)||0)+1);
   }
-  assert.deepEqual([...counts.entries()],[['shot_01',96],['shot_02',120],['shot_03',120],['shot_04',144]]);
+  assert.deepEqual([...counts.entries()],[['shot_01',120],['shot_02',150],['shot_03',150],['shot_04',180]]);
+});
+
+test('지원 FPS 24/25/30/60은 20초 길이를 유지하고 frame count만 변경한다',()=>{
+  const expected=new Map([[24,480],[25,500],[30,600],[60,1200]]);
+  const shotTimes=doc.shots.map(s=>[s.start,s.end]);
+  for(const [fps,frames] of expected){
+    const local=structuredClone(doc);local.sequence.fps=fps;
+    assert.equal(Math.round(local.sequence.duration*local.sequence.fps),frames);
+    assert.deepEqual(local.shots.map(s=>[s.start,s.end]),shotTimes);
+    const last=evaluateCameraAtTime(local,(frames-1)/fps);
+    for(const v of [...last.position,...last.target,last.lens]) assert.ok(Number.isFinite(v));
+  }
 });
 
 
@@ -111,7 +126,7 @@ test('manual camera override는 자동 카메라보다 우선하고 reset 가능
   const before=cameraEditSnapshot(local,0,'start');
   const manual=ensureManualCamera(local,0);
   manual.start=[10,3,-20];manual.targetMode='free';manual.targetStart=[0,1,0];
-  const cam=evaluateCameraAtTime(local,local.shots[0].start+1/24);
+  const cam=evaluateCameraAtTime(local,local.shots[0].start+1/local.sequence.fps);
   assert.ok(Math.abs(cam.position[0]-10)<.1);
   assert.ok(Math.abs(cam.position[1]-3)<.1);
   resetManualCamera(local,0);

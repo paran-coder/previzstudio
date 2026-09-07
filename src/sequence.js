@@ -236,7 +236,7 @@ export function buildTimelineRows(doc) {
 export function cameraKeyTime(doc, shotIndex, key='start') {
   const shot=doc?.shots?.[shotIndex];
   if(!shot)return 0;
-  const eps=1/Math.max(1,doc.sequence?.fps||24);
+  const eps=1/Math.max(1,doc.sequence?.fps||30);
   return key==='end' ? Math.max(shot.start,shot.end-eps) : Math.min(shot.end,shot.start+eps);
 }
 
@@ -256,7 +256,7 @@ export function ensureManualCamera(doc, shotIndex) {
   const shot=doc?.shots?.[shotIndex];
   if(!shot)return null;
   if(shot.camera.manual?.enabled)return shot.camera.manual;
-  const fps=Math.max(1,doc.sequence?.fps||24),eps=1/fps;
+  const fps=Math.max(1,doc.sequence?.fps||30),eps=1/fps;
   const startState=evaluateCameraAtTime(doc,Math.min(shot.end,shot.start+eps),{ignoreHandheld:true});
   const endState=evaluateCameraAtTime(doc,Math.max(shot.start,shot.end-eps),{ignoreHandheld:true});
   shot.camera.manual={
