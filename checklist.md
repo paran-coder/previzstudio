@@ -1,55 +1,62 @@
-# Previz Studio v1.0.0 — Checklist
+# Previz Studio v1.1.0 — Checklist
 
-## Stage 0 — Project Foundation
-- [x] Create semantic-versioned project directory
-- [x] Create context-notes.md
-- [x] Create checklist.md
-- [x] Create README.md
-- [x] Create User manual.md
+## Phase 0 — Project setup
+- [x] `context-notes.md`
+- [x] `checklist.md`
+- [x] `README.md`
+- [x] `User manual.md`
 
-## Stage 1 — Architecture & UI Shell
-- [x] Verify current web/3D stack assumptions
-- [x] Define Scene JSON schema
-- [x] Create zero-build ES module prototype shell (production React/Vite migration remains planned)
-- [x] Build editor shell: scene panel / viewport / inspector / shots / prompt bar
-- [x] Implement responsive layout and accessibility basics
+## Phase 1 — Architecture
+- [x] Buildless browser ESM + Node API/static server
+- [x] v1.1.0 Scene JSON Schema
+- [x] OpenAI Responses API Director endpoint
+- [x] Structured Outputs strict JSON schema
+- [x] Local deterministic fallback Director
+- [x] Multi-shot planner
+- [x] Server-only API key handling
+- [x] `.env` static exposure protection
 
-## Stage 2 — 3D Vertical Slice
-- [x] Create warehouse environment primitives
-- [x] Create two placeholder actors
-- [x] Create key/fill practical lighting
-- [x] Create cinematic camera
-- [x] Implement dolly-through movement
-- [x] Add play/pause/reset controls
+## Phase 2 — 3D
+- [x] Three.js renderer integration path
+- [x] WebGPURenderer + WebGL 2 fallback strategy
+- [x] GLTFLoader asset resolver
+- [x] `actor-neutral.glb`
+- [x] `sedan-blockout.glb`
+- [x] `warehouse-blockout.glb`
+- [x] Procedural/Canvas fallback renderer
+- [x] Director / Shot Camera modes
+- [x] Camera path visualization
 
-## Stage 3 — Natural Language Director
-- [x] Define rule-based local director fallback
-- [x] Parse demo prompt into SceneDocument
-- [ ] Validate Director output with Zod
-- [x] Regenerate scene from prompt
+## Phase 3 — UI
+- [x] Korean primary menus and controls
+- [x] Multi-shot strip
+- [x] Shot selection
+- [x] Korean shot inspector
+- [x] AI Director state badge
+- [x] Renderer state badge
+- [x] Responsive layout
+- [x] Reduced-motion behavior
 
-## Stage 4 — Previz Editing
-- [ ] Select scene nodes
-- [x] Edit shot duration
-- [x] Edit lens
-- [x] Edit camera move speed
-- [x] Maintain scene continuity across regeneration
+## Phase 4 — Export
+- [x] Scene JSON
+- [x] Current-shot start/mid/end PNG
+- [x] Multi-shot AI reference manifest
 
-## Stage 5 — Reference Output
-- [x] Capture start/mid/end frame PNGs
-- [x] Export Scene JSON
-- [x] Prepare reference-pack manifest
+## Phase 5 — Verification
+- [x] JavaScript syntax check
+- [x] Unit tests
+- [x] AI Director request contract test
+- [x] Browser smoke test
+- [x] Browser page errors = 0
+- [x] Default 4-shot test
+- [x] Regeneration prompt test
+- [x] GLB delivery test
+- [x] `.env` block test
+- [ ] Live external LLM request with user-owned API key
 
-## Quality Gate
-- [x] JavaScript syntax check passes (`npm run check`)
-- [ ] TypeScript migration planned for v1.1.0 production shell
-- [x] No runtime console errors in core path
-- [x] Reduced-motion behavior considered
-- [x] Keyboard-focusable primary controls
+## Result
+Automated tests: **6/6 PASS**.
 
-## Browser Smoke Test
-- [x] Canvas renderer instantiates
-- [x] Natural-language scene regeneration updates scene metadata
-- [x] Timeline playback advances
-- [x] Mid-frame PNG download succeeds
-- [x] Scene JSON download succeeds
+Live external LLM verification requires a real `OPENAI_API_KEY`; the server integration and request/response contract are implemented and mock-tested.
+
+- [x] v1.1.0 최종 패키지 생성

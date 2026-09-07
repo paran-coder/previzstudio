@@ -1,47 +1,49 @@
-# Previz Studio v1.0.0 — Context Notes
+# Previz Studio v1.1.0 — Context Notes
 
 ## Product Intent
 Previz Studio is a web-based AI film previz tool for both film/advertising creators and AI video creators.
 
-Core promise: natural language -> structured scene -> editable 3D previz -> reusable reference outputs.
+Core promise: natural language -> structured multi-shot scene -> editable 3D previz -> reusable AI-video references.
 
-## Primary User Groups
-1. Film / advertising teams: blocking, camera, lens, shot planning, storyboard and previz.
-2. AI video creators: stable shot references, continuity, camera motion references and exportable frames/video.
+## v1.1.0 Goals
+1. Replace the local-only director as the primary path with a real server-side LLM Director using OpenAI Responses API Structured Outputs.
+2. Keep a local deterministic fallback so the demo remains usable without an API key.
+3. Replace the prototype Canvas renderer with a Three.js renderer and production-oriented GLB/glTF asset resolver architecture.
+4. Add first-pass multi-shot automatic directing.
+5. Convert the main product UI and menus to Korean.
+6. Preserve continuity IDs across shots.
 
-## v1.0.0 Vertical Slice
-The first working slice must complete this loop:
+## Recommended Product Priority
+Multi-shot automatic directing precedes complex character animation. Shot structure, lens selection, camera placement and continuity are the product's directing core; character animation is layered on top in the next minor version.
 
-1. User types a scene in natural language.
-2. Director layer converts it to a deterministic Scene JSON schema.
-3. Web 3D renderer composes environment, actors, props, lights and camera.
-4. User can inspect and edit basic shot/camera properties.
-5. User can play the camera move and capture reference frames.
+## Default Demo
+> 밤의 창고. 두 사람이 서로 마주 서 있다. 와이드로 공간을 보여준 뒤 두 사람의 대치를 교차로 보여주고, 마지막에는 두 사람 사이로 카메라가 천천히 이동한다.
 
-## Demo Scene
-Default demo prompt:
+## UI Principles
+- 3D viewport is the visual center of gravity.
+- Korean-first labels; standard film terminology can retain short English abbreviations where clearer (e.g. mm, FPS).
+- Structure before decoration.
+- Dark editing environment with restrained contrast and motion.
+- Clear hierarchy: Project -> Scene -> Shot -> Object -> Property.
+- Accessibility: keyboard focus, readable contrast, reduced-motion support.
 
-> 밤의 창고. 두 사람이 서로 마주 서 있고 카메라가 두 사람 사이로 천천히 이동한다.
+## Renderer Direction
+- Three.js `WebGPURenderer` where supported, WebGL 2 fallback.
+- glTF/GLB is the canonical runtime asset format.
+- Procedural fallback geometry is used when a GLB asset is missing.
 
-## Product Principles
-- Do not recreate Blender; optimize for directing and previz.
-- AI produces constrained scene data, not arbitrary renderer code.
-- Scene continuity is a first-class concept.
-- Strong structure before visual decoration.
-- 3D viewport remains the visual center of gravity.
-- Motion should be restrained and functional.
-- UI should remain usable with keyboard and reduced-motion preferences.
+## AI Director Direction
+- Server endpoint owns API credentials.
+- LLM emits constrained JSON only, never renderer code.
+- JSON Schema validates environment, actors, props, lights, shots, lens, timing and camera movement.
+- Local fallback parser is always available for offline smoke tests.
 
-## Initial Technical Direction
-- v1.0.0 artifact prototype: dependency-free ES modules + Canvas perspective renderer for offline portability
-- Production renderer target: Three.js with WebGPU/WebGL 2 strategy
-- Production application shell target: React + TypeScript + Vite
-- Production state/schema target: Zustand + Zod
-- Browser-first rendering; server rendering is future scope
+## Non-goals
+- Blender-class modeling/sculpting/UV tools.
+- Full skeletal animation authoring.
+- Photoreal final rendering.
+- Generative 3D asset synthesis.
+- Multi-user collaboration.
 
-## Non-goals for the First Slice
-- Mesh modeling / sculpting / UV editing
-- Full Blender timeline parity
-- Generative 3D asset creation
-- Photoreal offline rendering
-- Complex skeletal animation authoring
+## v1.1.0 Implementation Note
+The delivered vertical slice uses buildless browser ES modules plus a small Node server so it can run without `npm install`. Three.js r185.1 is pinned through an import map; if that remote dependency is unavailable the application falls back to the local Canvas renderer. A future production packaging pass can bundle Three.js locally with Vite without changing the Scene Document or renderer interfaces.

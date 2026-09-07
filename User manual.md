@@ -1,70 +1,93 @@
-# Previz Studio v1.0.0 — User Manual
+# Previz Studio v1.1.0 — 사용자 매뉴얼
 
-## Start the Prototype
+## 1. 시작하기
 
-From the project folder:
+터미널에서 프로젝트 폴더로 이동한 뒤 실행합니다.
 
 ```bash
-python3 -m http.server 4173
+npm start
 ```
 
-Open `http://localhost:4173` in a modern browser.
+브라우저에서 `http://127.0.0.1:4173`을 엽니다.
 
-## Basic Workflow
+## 2. 화면 구성
 
-1. Enter a scene description in the bottom prompt bar.
-2. Select **Generate Scene** or press `Ctrl/Cmd + Enter`.
-3. Inspect actors, environment, camera, and lights in the viewport.
-4. Use **Director** view to orbit around the scene; drag to rotate and use the wheel to zoom.
-5. Use **Shot Camera** to see the actual camera framing.
-6. Adjust lens, duration, and dolly distance in the Inspector.
-7. Press Play or scrub the timeline to review the move.
-8. Export Start / Mid / End PNG reference frames.
-9. Export Scene JSON for reproducibility.
-10. Export **Manifest JSON** to pass camera, continuity, actor, and reference-frame intent into an AI-video workflow.
+- **씬**: 환경, 배우, 소품, 카메라, 조명을 확인합니다.
+- **연출 뷰**: 전체 공간과 카메라 경로를 확인합니다.
+- **샷 카메라**: 선택한 샷이 실제로 보게 될 화면을 확인합니다.
+- **샷 구성**: AI가 나눈 여러 샷을 선택합니다.
+- **샷 속성**: 렌즈, 길이, 이동 거리, 연출 의도를 확인·수정합니다.
+- **AI 연출 입력**: 자연어로 장면을 생성하거나 다시 연출합니다.
 
-## Default Demo
+## 3. 기본 멀티샷
 
-> 밤의 창고. 두 사람이 서로 마주 서 있고 카메라가 두 사람 사이로 천천히 이동한다.
+기본 데모는 다음 4개 샷으로 구성됩니다.
 
-Expected result:
+1. 공간 설정 — 24mm
+2. 인물 A — 50mm
+3. 인물 B — 50mm
+4. 대치 돌리 — 35mm
 
-- Warehouse / Night
-- Two actors
-- 35mm lens
-- Dolly-through camera move
-- 6 second duration
+샷 카드를 누르면 해당 샷의 카메라와 속성이 활성화됩니다.
 
-## Natural-Language Examples
+## 4. 자연어 입력
 
-```text
-비 오는 골목, 두 명을 85mm로 4초 동안 따라간다.
+예시:
+
+> 비 오는 골목에서 두 명을 85mm로 4초 동안 따라간다.
+
+**장면 생성**을 누르거나 `Cmd/Ctrl + Enter`를 사용합니다.
+
+실제 AI Director가 연결되어 있으면 LLM이 Scene Document를 생성하고, 그렇지 않으면 로컬 Director가 지원 키워드로 장면을 생성합니다.
+
+## 5. AI Director 연결
+
+```bash
+cp .env.example .env
 ```
 
-```text
-와이드 24mm. 세 사람이 창고에 서 있고 카메라는 고정한다.
-```
+`.env`의 `OPENAI_API_KEY`에 서버용 API 키를 설정한 뒤 서버를 다시 실행합니다.
 
-```text
-사무실에서 한 사람을 50mm로 천천히 따라간다.
-```
+브라우저 화면 우측 상단의 상태가 `AI 연출: <모델명>`으로 바뀌면 실제 LLM 경로가 활성화된 것입니다.
 
-The v1.0.0 prototype uses a deterministic local language parser. A server AI Director is the planned production replacement, while keeping the same Scene Document contract.
+## 6. 3D 렌더러
 
-## Editor Areas
+정상 네트워크에서는 Three.js와 GLTFLoader가 사용됩니다. 창고/배우/세단은 프로젝트 내부 GLB 파일을 읽습니다.
 
-- **Scene** — environment, actors, camera, and lights.
-- **Viewport** — 3D previz and director navigation.
-- **Inspector** — lens, duration, camera distance, and reference exports.
-- **Shots** — current shot and transport timeline.
-- **Prompt Bar** — natural-language directing input.
+네트워크 환경에서 Three.js를 불러오지 못하면 `Canvas 대체 렌더러` 표시가 나오며 프리비즈 기능은 계속 사용할 수 있습니다.
 
-## Reference Outputs
+## 7. 샷 수정
 
-- `previz-shot01-start.png`
-- `previz-shot01-mid.png`
-- `previz-shot01-end.png`
-- `previz-scene-v1.0.0.json`
-- `previz-reference-pack-manifest.json`
+오른쪽 **샷 속성**에서 다음 값을 변경합니다.
 
-The manifest preserves source prompt, continuity key, actors, lens, camera path, timing, and recommended frame roles.
+- 렌즈: 18–120mm
+- 길이: 1–30초
+- 이동 거리: 0–30m
+
+현재 v1.1.0에서는 카메라 이동 종류 자체는 AI Director가 결정하고, 사용자는 주요 수치를 수정합니다.
+
+## 8. 레퍼런스 내보내기
+
+선택한 샷에서 다음 항목을 저장할 수 있습니다.
+
+- 시작 PNG
+- 중간 PNG
+- 끝 PNG
+- 레퍼런스 명세 JSON
+- 전체 Scene JSON
+
+레퍼런스 명세에는 continuity key, 배우 ID, 카메라 시작/끝 위치, 렌즈, 이동 방식과 샷별 추천 파일명이 포함됩니다.
+
+## 9. AI 영상 생성에 사용하는 방법
+
+추천 흐름:
+
+1. Previz Studio에서 전체 장면을 멀티샷으로 설계합니다.
+2. 각 샷의 시작/중간/끝 프레임을 저장합니다.
+3. 같은 continuity key에 속하는 샷은 동일 캐릭터/공간 레퍼런스로 관리합니다.
+4. AI 영상 생성 프로그램에 프레임과 샷 설명을 함께 제공합니다.
+5. 생성 결과가 구도나 동선에서 벗어나면 Previz Studio의 렌즈/카메라 경로를 먼저 수정합니다.
+
+## 10. v1.1.0 제한
+
+캐릭터는 아직 복잡한 skeletal animation을 하지 않습니다. 다음 버전의 우선순위는 캐릭터 애니메이션과 Action Sequence입니다.

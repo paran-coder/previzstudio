@@ -1,15 +1,28 @@
 # Changelog
 
-## 1.0.0 — Vertical Slice
+## 1.1.0 — 2026-09-07
 
-- Added natural-language local Director parser.
-- Added deterministic Scene Document schema validation.
-- Added dependency-free browser previz renderer with perspective camera.
-- Added warehouse demo, placeholder actors, scene lights, and camera path visualization.
-- Added Director / Shot Camera views.
-- Added lens, duration, and dolly-distance editing.
-- Added timeline play, pause, reset, and scrubbing.
-- Added Start / Mid / End PNG export.
-- Added Scene JSON and AI-video reference manifest export.
-- Added responsive dark editor UI and reduced-motion handling.
-- Added Node tests and browser smoke tests.
+### Added
+- OpenAI Responses API AI Director endpoint with Structured Outputs.
+- Server-side API-key handling and local fallback Director.
+- Automatic multi-shot directing.
+- Three.js WebGPU/WebGL renderer path.
+- GLTFLoader-based asset resolver.
+- Actor, sedan and warehouse GLB blockout assets.
+- Korean editor menus and shot inspector.
+- Multi-shot reference manifest export.
+- AI Director / renderer status indicators.
+
+### Changed
+- Product flow now centers on Scene → Shot → Camera → Reference.
+- Default confrontation demo expanded from one shot to four shots.
+- UI copy translated to Korean-first terminology.
+
+### Security
+- `.env` and non-public project files are not exposed by the static server.
+- API credentials remain server-side.
+
+### Verification
+- Syntax check PASS.
+- Automated tests 6/6 PASS.
+- Browser smoke PASS with zero page errors.

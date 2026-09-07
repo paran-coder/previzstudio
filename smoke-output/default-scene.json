@@ -1,0 +1,179 @@
+{
+  "version": "1.1.0",
+  "sourcePrompt": "밤의 창고. 두 사람이 서로 마주 서 있다. 와이드로 공간을 보여준 뒤 두 사람의 대치를 교차로 보여주고, 마지막에는 두 사람 사이로 카메라가 천천히 이동한다.",
+  "scene": {
+    "id": "scene_warehouse_01",
+    "continuityKey": "warehouse:night:clear:v1",
+    "environment": {
+      "type": "warehouse",
+      "time": "night",
+      "weather": "clear",
+      "assetId": "warehouse_blockout"
+    }
+  },
+  "actors": [
+    {
+      "id": "actor_01",
+      "role": "subject_a",
+      "assetId": "actor_neutral",
+      "position": [
+        -2.2,
+        0,
+        0
+      ],
+      "rotationY": -1.5707963267948966,
+      "action": "stand_confrontation"
+    },
+    {
+      "id": "actor_02",
+      "role": "subject_b",
+      "assetId": "actor_neutral",
+      "position": [
+        2.2,
+        0,
+        0
+      ],
+      "rotationY": 1.5707963267948966,
+      "action": "stand_confrontation"
+    }
+  ],
+  "props": [],
+  "lights": [
+    {
+      "id": "ambient_01",
+      "type": "ambient",
+      "intensity": 0.7,
+      "position": [
+        0,
+        4,
+        0
+      ]
+    },
+    {
+      "id": "key_01",
+      "type": "directional",
+      "intensity": 3.2,
+      "position": [
+        -4,
+        7,
+        5
+      ]
+    },
+    {
+      "id": "rim_01",
+      "type": "point",
+      "intensity": 18,
+      "position": [
+        3,
+        4.5,
+        -3
+      ]
+    }
+  ],
+  "shots": [
+    {
+      "id": "shot_01",
+      "title": "공간 설정",
+      "intent": "공간과 두 인물의 위치 관계를 먼저 제시",
+      "duration": 3.5,
+      "camera": {
+        "movement": "dolly_forward",
+        "lens": 24,
+        "distance": 2,
+        "start": [
+          0,
+          2,
+          9
+        ],
+        "end": [
+          0,
+          1.9,
+          7
+        ],
+        "target": [
+          0,
+          1.2,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shot_02",
+      "title": "인물 A",
+      "intent": "첫 번째 인물의 긴장감을 중간 클로즈업으로 강조",
+      "duration": 3,
+      "camera": {
+        "movement": "static",
+        "lens": 50,
+        "distance": 0,
+        "start": [
+          -4.6,
+          1.75,
+          2.8
+        ],
+        "end": [
+          -4.6,
+          1.75,
+          2.8
+        ],
+        "target": [
+          -2.1,
+          1.45,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shot_03",
+      "title": "인물 B",
+      "intent": "반대편 인물의 반응을 대응 구도로 연결",
+      "duration": 3,
+      "camera": {
+        "movement": "static",
+        "lens": 50,
+        "distance": 0,
+        "start": [
+          4.6,
+          1.75,
+          2.8
+        ],
+        "end": [
+          4.6,
+          1.75,
+          2.8
+        ],
+        "target": [
+          2.1,
+          1.45,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shot_04",
+      "title": "대치 돌리",
+      "intent": "두 인물 사이의 축을 통과하며 긴장감을 마무리",
+      "duration": 6,
+      "camera": {
+        "movement": "dolly_through",
+        "lens": 35,
+        "distance": 9,
+        "start": [
+          0,
+          1.7,
+          4.5
+        ],
+        "end": [
+          0,
+          1.7,
+          -4.5
+        ],
+        "target": [
+          0,
+          1.3,
+          0
+        ]
+      }
+    }
+  ]
+}
