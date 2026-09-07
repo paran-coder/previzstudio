@@ -44,15 +44,19 @@ export function evaluateActorAtTime(doc, actorOrId, time) {
     }
     const p = clamp((t-action.start)/Math.max(.001,action.end-action.start),0,1);
     const moving = ['walk','run','chase'].includes(action.type);
-    const speed = action.type === 'walk' ? 1.55 : moving ? 3.4 : 0;
-    const cycle = (t-action.start) * speed * Math.PI * 2;
+    const fighting = action.type === 'fight';
+    const speed = action.type === 'walk' ? 1.55 : moving ? 3.4 : fighting ? 1.35 : 0;
+    const cycle = (t-action.start) * speed * Math.PI * 2 + (action.phaseOffset||0);
+    const fightWave=fighting?Math.sin(cycle):0;
     state = {
-      position: moving ? lerpVec3(from,to,p) : [...from],
+      position: moving || fighting ? lerpVec3(from,to,p) : [...from],
       rotationY: lerp(r0,r1,p),
       action: action.type,
-      stride: moving ? Math.sin(cycle) * (action.type === 'walk' ? .48 : .82) : 0,
-      bob: moving ? Math.abs(Math.sin(cycle)) * (action.type === 'walk' ? .035 : .075) : Math.sin(t*2.2)*.008,
-      lean: action.type === 'run' || action.type === 'chase' ? .13 : 0,
+      stride: moving ? Math.sin(cycle) * (action.type === 'walk' ? .48 : .82) : fighting ? Math.sin(cycle*.5)*.16 : 0,
+      bob: moving ? Math.abs(Math.sin(cycle)) * (action.type === 'walk' ? .035 : .075) : fighting ? Math.abs(Math.sin(cycle))*0.025 : Math.sin(t*2.2)*.008,
+      lean: action.type === 'run' || action.type === 'chase' ? .13 : fighting ? .08 + Math.max(0,fightWave)*.08 : 0,
+      fightSwing:fightWave,
+      fightGuard:fighting ? Math.cos(cycle*.5) : 0,
       progress:p,
     };
     return state;
@@ -79,7 +83,7 @@ function localOffset(base, basis, local) {
   ];
 }
 
-export function evaluateCameraAtTime(doc, time) {
+export function evaluateCameraAtTime(doc, time, options={}) {
   const shot = activeShotAtTime(doc,time);
   const p = shotProgress(shot,time);
   const c = shot.camera;
@@ -90,7 +94,19 @@ export function evaluateCameraAtTime(doc, time) {
   let position;
   let target;
 
-  if (archetype === 'rear_three_quarter' && primary) {
+  if (c.manual?.enabled) {
+    position = lerpVec3(c.manual.start,c.manual.end,p);
+    const mode=c.manual.targetMode||'free';
+    const offset=c.manual.targetOffset||[0,0,0];
+    if(mode==='actor'){
+      const subject=evaluateActorAtTime(doc,c.manual.targetActorId||c.targetActorId,time);
+      target=addVec3(subject?.position||lerpVec3(c.manual.targetStart,c.manual.targetEnd,p),offset);
+    } else if(mode==='midpoint'){
+      const a=evaluateActorAtTime(doc,c.targetActorId||doc.actors[0]?.id,time);
+      const b=evaluateActorAtTime(doc,c.secondaryActorId||doc.actors[1]?.id,time);
+      target=addVec3(midpoint(a?.position||[0,0,0],b?.position||a?.position||[0,0,0]),offset);
+    } else target=addVec3(lerpVec3(c.manual.targetStart,c.manual.targetEnd,p),offset);
+  } else if (archetype === 'rear_three_quarter' && primary) {
     position = localOffset(primary.position,basis,lerpVec3(c.start,c.end,p));
     target = localOffset(primary.position,basis,[0,1.38,3.4]);
   } else if (archetype === 'side_track' && primary) {
@@ -112,9 +128,10 @@ export function evaluateCameraAtTime(doc, time) {
 
     if (c.movement === 'track_follow' || c.movement === 'handheld_follow') {
       const subject = primary?.position || c.target;
+      const focus = secondary?.position ? midpoint(subject,secondary.position) : subject;
       position = addVec3(subject, lerpVec3(c.start,c.end,p));
-      const forwardLead = c.movement === 'handheld_follow' ? 2.0 : 1.2;
-      target = addVec3(subject,[0,1.45,forwardLead]);
+      const forwardLead = c.movement === 'handheld_follow' ? .6 : 1.2;
+      target = addVec3(focus,[0,1.45,forwardLead]);
     } else if (c.movement === 'track_between') {
       const a = primary?.position || c.target;
       const b = secondary?.position || a;
@@ -123,7 +140,7 @@ export function evaluateCameraAtTime(doc, time) {
       position = addVec3(mid, lerpVec3(c.start,c.end,p));
       target = lerpVec3(addVec3(mid,[0,1.35,2]), addVec3(a,[0,1.4,2.5]), push);
     } else if (c.movement === 'orbit') {
-      const center = primary?.position || c.target;
+      const center = primary?.position ? (secondary?.position ? midpoint(primary.position,secondary.position) : primary.position) : c.target;
       const angle = lerp(-.8,.8,p);
       const radius = Math.max(2.5,c.distance || 6);
       position = addVec3(center,[Math.sin(angle)*radius,2.1,Math.cos(angle)*radius]);
@@ -133,7 +150,7 @@ export function evaluateCameraAtTime(doc, time) {
     }
   }
 
-  if (c.movement === 'handheld_follow' || c.handheldAmount > 0) {
+  if (!options.ignoreHandheld && (c.movement === 'handheld_follow' || c.handheldAmount > 0)) {
     const a = c.handheldAmount || .25;
     position = addVec3(position,[
       Math.sin(time*13.3)*.055*a,
@@ -214,4 +231,61 @@ export function buildTimelineRows(doc) {
     })),
     camera: doc.shots.map(s=>({id:`cam-${s.id}`,label:s.camera.movement.toUpperCase(),start:s.start,end:s.end,type:s.camera.movement}))
   };
+}
+
+export function cameraKeyTime(doc, shotIndex, key='start') {
+  const shot=doc?.shots?.[shotIndex];
+  if(!shot)return 0;
+  const eps=1/Math.max(1,doc.sequence?.fps||24);
+  return key==='end' ? Math.max(shot.start,shot.end-eps) : Math.min(shot.end,shot.start+eps);
+}
+
+export function cameraEditSnapshot(doc, shotIndex, key='start') {
+  const shot=doc?.shots?.[shotIndex];
+  if(!shot)return null;
+  const c=shot.camera, manual=c.manual;
+  const time=cameraKeyTime(doc,shotIndex,key);
+  const evaluated=evaluateCameraAtTime(doc,time);
+  const position=manual?.enabled ? [...(key==='end'?manual.end:manual.start)] : [...evaluated.position];
+  const target=[...evaluated.target];
+  const distance=Math.hypot(target[0]-position[0],target[1]-position[1],target[2]-position[2]);
+  return {shotIndex,key,time,position,target,distance,targetMode:manual?.enabled?(manual.targetMode||'free'):'free',targetActorId:manual?.targetActorId||c.targetActorId||doc.actors?.[0]?.id||'',targetOffset:[...(manual?.targetOffset||[0,0,0])],manualEnabled:Boolean(manual?.enabled)};
+}
+
+export function ensureManualCamera(doc, shotIndex) {
+  const shot=doc?.shots?.[shotIndex];
+  if(!shot)return null;
+  if(shot.camera.manual?.enabled)return shot.camera.manual;
+  const fps=Math.max(1,doc.sequence?.fps||24),eps=1/fps;
+  const startState=evaluateCameraAtTime(doc,Math.min(shot.end,shot.start+eps),{ignoreHandheld:true});
+  const endState=evaluateCameraAtTime(doc,Math.max(shot.start,shot.end-eps),{ignoreHandheld:true});
+  shot.camera.manual={
+    enabled:true,
+    start:[...startState.position],end:[...endState.position],
+    targetMode:'free',targetActorId:shot.camera.targetActorId||doc.actors?.[0]?.id||'',
+    targetStart:[...startState.target],targetEnd:[...endState.target],targetOffset:[0,0,0]
+  };
+  return shot.camera.manual;
+}
+
+export function resetManualCamera(doc, shotIndex) {
+  const shot=doc?.shots?.[shotIndex];
+  if(shot?.camera?.manual)delete shot.camera.manual;
+}
+
+export function translateActorPath(doc, actorId, delta) {
+  const actor=doc?.actors?.find(a=>a.id===actorId);if(!actor)return;
+  const add=p=>p?[p[0]+delta[0],p[1]+delta[1],p[2]+delta[2]]:p;
+  actor.position=add(actor.position);
+  for(const a of actor.actions||[]){if(a.from)a.from=add(a.from);if(a.to)a.to=add(a.to);}
+}
+
+export function rotateActorPath(doc, actorId, rotationY) {
+  const actor=doc?.actors?.find(a=>a.id===actorId);if(!actor)return;
+  const oldRotation=actor.rotationY||0,delta=rotationY-oldRotation;actor.rotationY=rotationY;
+  for(const a of actor.actions||[]){
+    const oldFrom=Number.isFinite(a.rotationFrom)?a.rotationFrom:oldRotation;
+    const oldTo=Number.isFinite(a.rotationTo)?a.rotationTo:oldFrom;
+    a.rotationFrom=oldFrom+delta;a.rotationTo=oldTo+delta;
+  }
 }

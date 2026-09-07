@@ -54,10 +54,23 @@ test('Vite production build는 CDN import map 대신 hashed assets와 npm depend
   const vercel=JSON.parse(await readFile(new URL('vercel.json',root),'utf8'));
   assert.doesNotMatch(html,/importmap/);
   assert.doesNotMatch(html,/cdn\.jsdelivr\.net/);
-  assert.equal(pkg.version,'1.2.3');
+  assert.equal(pkg.version,'1.3.0');
   assert.equal(pkg.dependencies.three,'0.185.1');
   assert.equal(pkg.dependencies.mediabunny,'1.55.7');
   assert.match(pkg.scripts.build,/vite build/);
   assert.match(vite,/\[name\]-\[hash\]\.js/);
   assert.equal(vercel.outputDirectory,'dist');
+});
+
+
+test('v1.3.0 UI는 Camera/Actor Transform 편집 컨트롤을 제공한다',async()=>{
+  const html=await readFile(new URL('index.html',root),'utf8');
+  for(const id of ['edit-target','cam-x','cam-y','cam-z','cam-height','cam-distance','target-mode','target-x','target-y','target-z','actor-x','actor-y','actor-z','actor-rotation','reset-camera-auto']) assert.match(html,new RegExp(`id="${id}"`));
+  assert.match(html,/data-transform-mode="translate"/);
+  assert.match(html,/data-transform-mode="rotate"/);
+  assert.match(html,/data-transform-mode="target"/);
+  const three=await readFile(new URL('src/renderer-three.js',root),'utf8');
+  assert.match(three,/TransformControls/);
+  assert.match(three,/ensureManualCamera/);
+  assert.match(three,/translateActorPath/);
 });

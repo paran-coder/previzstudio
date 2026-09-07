@@ -1,59 +1,58 @@
-# Previz Studio v1.2.3 — Context Notes
-
-## Release Goal
-v1.2.3 is a render-consistency and deployment-integrity release. No new creative features are added.
-
-Production review of v1.2.2 showed that shot order and actor timing were close, but Camera Preview and downloaded video could still differ in composition. The release therefore removes duplicated preview/export frame paths and eliminates stale mixed-version module delivery.
+# Previz Studio v1.3.0 — Context Notes
 
 ## Product Intent
-Previz Studio is a browser-based previz tool for film/advertising creators and AI-video creators. The core output is a visual reference containing blocking, actor motion, shot camera, timing, and a rendered sequence. Natural-language input remains a deterministic setup shortcut.
+Previz Studio는 Blender 프리비즈의 결과를 웹에서 더 단순한 작업 흐름으로 얻기 위한 3D 프리비즈 도구다. 자연어는 엔진이 표현 가능한 장면 구조를 빠르게 블로킹하는 입력 수단이며 제품의 중심은 실제 배우 동작, 카메라 연출, 수동 편집, Preview/Render 일치다.
 
-## Canonical Frame Contract
-There is exactly one output-frame contract for Shot Camera media.
+## v1.3.0 Goal
+1. 자연어 파서가 `두 사람`, `격투/싸움`, `다양한 각도`, `역동적/익사이팅`을 최소한의 결정론적 규칙으로 이해한다.
+2. `fight` 액션을 추가해 두 배우가 실제 격투 포즈를 반복하도록 한다.
+3. Camera Editing을 추가한다: 위치, 높이, 거리, 타겟, 시작/끝 transform.
+4. Three.js 편집 뷰에 Transform Gizmo를 추가한다.
+5. Actor도 동일한 편집 체계에서 위치/회전을 수정할 수 있다.
+6. 사용자 수정 카메라는 manual override로 저장해 자동 카메라 계산보다 우선한다.
+7. v1.2.3 Canonical Frame 파이프라인은 유지한다. Preview / PNG / MP4/WebM은 같은 렌더 엔트리 포인트를 사용한다.
 
-For every master time `t`:
-1. evaluate actor state;
-2. evaluate shot/camera state;
-3. apply the fixed project output aspect (`sequence.width / sequence.height`);
-4. render the canonical frame;
-5. reuse that same path for Camera Preview, PNG capture, WebCodecs MP4, and MediaRecorder fallback.
+## Parser Philosophy
+- LLM 연결은 필수가 아니다.
+- 지원되는 단어만 추출하고 나머지는 무시한다.
+- 배우 수, 환경, 시간대, 기본 액션, 카메라 강도/다양성, 렌즈, 길이를 결정론적으로 추출한다.
+- 격투 장면은 2인 구도를 기본으로 한다.
 
-Rules:
-- Preview panel dimensions never change Shot Camera FOV/aspect.
-- Preview only changes the CSS presentation size of the canonical frame.
-- Export resolution may change pixel dimensions, never composition.
-- Edit View remains a separate free camera.
-- Camera Preview, PNG, and video may differ in pixel resolution but not framing, actor state, lighting, lens, or cut timing.
+## Fight Demo
+> 두 사람이 격렬하게 하는 격투씬, 카메라가 다양한 각도로 익사이팅한 앵글로 따라간다.
 
-## Deployment Integrity Contract
-v1.2.3 uses Vite as the production build system.
+예상 결과:
+- Actor 01 / Actor 02
+- FIGHT 액션
+- 20초 / 4 shots
+- Wide Orbit → Side Handheld → Opponent Follow → Between Push
 
-- `three` is an npm dependency, not a runtime CDN import map.
-- Production JS/CSS are emitted with content-hashed filenames.
-- `index.html` references the generated build graph.
-- A single app build identifier is exposed at runtime so UI, renderer, schema, and export pipeline can be verified as the same release.
-- Development source remains readable under `src/`, but Vercel serves `dist/`.
+## Camera Editing
+- 카메라 선택 대상은 현재 Shot이다.
+- Start / End 카메라 포인트를 각각 편집한다.
+- Manual camera는 world-space start/end/target을 저장한다.
+- Target mode: free / actor / midpoint.
+- Camera 위치를 직접 수정하면 `manual.enabled = true`.
+- `자동 구도로 되돌리기`로 manual override를 제거한다.
 
-This prevents a new HTML shell from accidentally running an older renderer module from cache.
+## Actor Editing
+- 배우 선택 후 이동/회전 gizmo 사용.
+- 이동은 배우의 모든 action `from/to`에 동일 delta를 적용한다.
+- 회전은 actor rotation과 action rotation 값을 갱신한다.
 
-## Initial Edit Camera
-The v1.2.2 derived 3/4 elevated overview remains the default edit entry view. It is not part of the canonical Shot Camera frame and must not affect output.
+## Non-goals
+- 복잡한 격투 모션 캡처
+- IK 리깅 편집
+- Blender 수준 keyframe editor
+- 중간 camera keyframe 다중 편집
+- 자연어의 세밀한 의미 추론
 
-## UI Scope
-UI final polish is intentionally deferred until Production proves Preview/PNG/MP4 frame consistency. v1.2.3 only adds small build/debug metadata needed to verify release integrity.
-
-## Official Regression Sequence
-20-second night road chase, 24fps, 1920×1080:
-- Shot 01: rear 3/4 wide
-- Shot 02: side tracking
-- Shot 03: rear chase / handheld follow
-- Shot 04: dynamic between / push
-
-## Completion Criteria
-- Preview, PNG, and video invoke the same canonical frame render entry point.
-- Shot Camera aspect is always output aspect.
-- Representative 0.5 / 4.5 / 9.5 / 14.5 / 19.0 second frames are composition-equivalent between Preview and output after Production deployment.
-- Vite production build emits hashed JS/CSS assets.
-- Runtime build badge reports v1.2.3 consistently.
-- Existing initial Edit View overview remains stable.
-- Syntax/unit/build-contract tests pass.
+## v1.3.0 Verification Status
+- Exact user prompt: Actor 2 / FIGHT / 4-shot dynamic camera: PASS
+- Syntax check: PASS
+- Unit / contract tests: 29/29 PASS
+- Existing chase canonical camera 480-frame regression: PASS
+- Manual camera evaluator: PASS
+- Actor path transform preservation: PASS
+- Local Vite build: not executed because npm dependency cache is unavailable in this container
+- Production Three.js TransformControls smoke test: pending after Vercel deployment

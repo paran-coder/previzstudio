@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { directPromptFallback } from '../src/director-fallback.js';
-import { activeShotAtTime, evaluateActorAtTime, evaluateCameraAtTime, deriveEditOverview, fitAspectRect, outputAspect } from '../src/sequence.js';
+import { activeShotAtTime, evaluateActorAtTime, evaluateCameraAtTime, deriveEditOverview, fitAspectRect, outputAspect, ensureManualCamera, cameraEditSnapshot, resetManualCamera, translateActorPath, rotateActorPath } from '../src/sequence.js';
 
 const doc=directPromptFallback('밤의 도로. 한 사람이 도망치고 다른 사람이 뒤따라 쫓아간다. 카메라는 역동적으로 두 사람 사이를 오가며 추격한다.');
 
@@ -92,4 +92,41 @@ test('1150×480 production viewport에서도 canonical preview stage는 정확�
   assert.equal(rect.height,480);
   assert.ok(Math.abs(rect.left-148.33333333333337)<1e-6);
   assert.equal(rect.top,0);
+});
+
+
+test('fight action은 격투 상태와 타격 위상을 생성한다',()=>{
+  const fight=directPromptFallback('두 사람이 격렬하게 싸운다. 카메라는 다양한 각도로 따라간다.');
+  const a=evaluateActorAtTime(fight,'actor_01',3.2);
+  const b=evaluateActorAtTime(fight,'actor_02',3.2);
+  assert.equal(a.action,'fight');
+  assert.equal(b.action,'fight');
+  assert.ok(Number.isFinite(a.fightSwing));
+  assert.ok(Number.isFinite(b.fightSwing));
+  assert.notEqual(a.fightSwing,b.fightSwing);
+});
+
+test('manual camera override는 자동 카메라보다 우선하고 reset 가능하다',()=>{
+  const local=directPromptFallback('밤의 도로. 한 사람이 도망치고 다른 사람이 뒤따라 쫓아간다.');
+  const before=cameraEditSnapshot(local,0,'start');
+  const manual=ensureManualCamera(local,0);
+  manual.start=[10,3,-20];manual.targetMode='free';manual.targetStart=[0,1,0];
+  const cam=evaluateCameraAtTime(local,local.shots[0].start+1/24);
+  assert.ok(Math.abs(cam.position[0]-10)<.1);
+  assert.ok(Math.abs(cam.position[1]-3)<.1);
+  resetManualCamera(local,0);
+  const after=cameraEditSnapshot(local,0,'start');
+  assert.equal(Boolean(local.shots[0].camera.manual),false);
+  assert.ok(Math.abs(after.position[0]-before.position[0])<.01);
+});
+
+test('actor transform helper는 전체 action path와 회전을 보존하며 이동한다',()=>{
+  const local=directPromptFallback('두 사람이 격렬하게 싸운다.');
+  const actor=local.actors[0],oldFrom=[...actor.actions[0].from],oldTo=[...actor.actions[0].to];
+  translateActorPath(local,actor.id,[2,0,-1]);
+  assert.deepEqual(actor.position,[oldFrom[0]+2,oldFrom[1],oldFrom[2]-1]);
+  assert.deepEqual(actor.actions[0].from,[oldFrom[0]+2,oldFrom[1],oldFrom[2]-1]);
+  assert.deepEqual(actor.actions[0].to,[oldTo[0]+2,oldTo[1],oldTo[2]-1]);
+  rotateActorPath(local,actor.id,Math.PI);
+  assert.ok(Math.abs(actor.rotationY-Math.PI)<1e-9);
 });

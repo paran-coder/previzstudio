@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#06080a" />
-  <title>Previz Studio v1.2.3 — 3D 프리비즈 레퍼런스</title>
+  <title>Previz Studio v1.3.0 — 3D 프리비즈 레퍼런스</title>
   <meta name="description" content="인물 동작과 카메라 무빙을 3D 프리비즈로 만들고 AI 영상 생성용 레퍼런스 영상으로 렌더합니다." />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Previz Studio — 자연어로 만드는 3D 프리비즈" />
@@ -25,7 +25,7 @@
     <div class="브랜드">
       <div class="브랜드마크">P</div>
       <div class="브랜드텍스트">
-        <div class="브랜드행"><strong>Previz Studio</strong><span class="버전">v1.2.3</span></div>
+        <div class="브랜드행"><strong>Previz Studio</strong><span class="버전">v1.3.0</span></div>
         <span class="브랜드설명">AI 영상 레퍼런스용 3D 프리비즈</span>
       </div>
     </div>
@@ -57,7 +57,7 @@
             <div class="샷요약상단"><span id="viewport-shot-id" class="샷아이디">SHOT 01</span><strong id="viewport-shot-title">후방 3/4 와이드</strong></div>
             <div class="뷰포트메타"><span id="environment-label" class="필">도로 · 밤</span><span id="camera-label" class="필">24mm · 돌리 아웃</span></div>
           </div>
-          <div class="엔진상태"><span id="renderer-status" class="엔진뱃지">렌더러 준비 중</span><span id="build-status" class="엔진뱃지 빌드뱃지">APP v1.2.3</span></div>
+          <div class="엔진상태"><span id="renderer-status" class="엔진뱃지">렌더러 준비 중</span><span id="build-status" class="엔진뱃지 빌드뱃지">APP v1.3.0</span></div>
         </div>
         <div id="view-status" class="뷰상태"><strong>편집 작업 시점</strong><span>최종 출력 화면이 아닙니다.</span></div>
         <div id="viewport" class="뷰포트"><div class="로딩"><span></span><b>3D 엔진 준비 중</b></div></div>
@@ -86,6 +86,50 @@
         <div class="현재샷카드"><strong id="intent-title">후방 3/4 와이드</strong><p id="intent-copy"></p></div>
         <label class="필드"><span>렌즈</span><div class="입력단위"><input id="lens" type="number" min="18" max="120" value="24"><span>mm</span></div></label>
         <label class="필드"><span>카메라 무빙</span><div id="movement-label" class="읽기값">돌리 아웃</div></label>
+      </section>
+      <section class="속성섹션 트랜스폼섹션">
+        <div class="섹션제목행"><div class="섹션제목">Transform</div><span id="manual-state" class="편집상태">자동 구도</span></div>
+        <label class="필드 세로필드"><span>편집 대상</span><select id="edit-target" class="선택입력"><option value="camera">카메라</option></select></label>
+        <div class="기즈모모드" aria-label="Transform Gizmo">
+          <button class="기즈모버튼 활성" data-transform-mode="translate">이동 <kbd>W</kbd></button>
+          <button class="기즈모버튼" data-transform-mode="rotate">회전 <kbd>E</kbd></button>
+          <button class="기즈모버튼" data-transform-mode="target">타겟 <kbd>T</kbd></button>
+        </div>
+        <div id="camera-transform-controls">
+          <div class="미니세그먼트"><button class="미니버튼 활성" data-camera-key="start">시작</button><button class="미니버튼" data-camera-key="end">끝</button></div>
+          <div class="좌표그리드">
+            <label><span>X</span><input id="cam-x" type="number" step="0.1"></label>
+            <label><span>Y</span><input id="cam-y" type="number" step="0.1"></label>
+            <label><span>Z</span><input id="cam-z" type="number" step="0.1"></label>
+          </div>
+          <label class="필드"><span>높이</span><div class="입력단위"><input id="cam-height" type="number" step="0.1"><span>m</span></div></label>
+          <label class="필드"><span>피사체 거리</span><div class="입력단위"><input id="cam-distance" type="number" min="0.5" max="50" step="0.1"><span>m</span></div></label>
+          <label class="필드 세로필드"><span>타겟 방식</span><select id="target-mode" class="선택입력"><option value="free">자유 포인트</option><option value="actor">배우</option><option value="midpoint">두 배우 중점</option></select></label>
+          <label id="target-actor-row" class="필드 세로필드"><span>타겟 배우</span><select id="target-actor" class="선택입력"></select></label>
+          <div class="보조라벨">타겟 위치</div>
+          <div class="좌표그리드">
+            <label><span>X</span><input id="target-x" type="number" step="0.1"></label>
+            <label><span>Y</span><input id="target-y" type="number" step="0.1"></label>
+            <label><span>Z</span><input id="target-z" type="number" step="0.1"></label>
+          </div>
+          <div class="보조라벨">타겟 오프셋</div>
+          <div class="좌표그리드">
+            <label><span>X</span><input id="target-offset-x" type="number" step="0.05"></label>
+            <label><span>Y</span><input id="target-offset-y" type="number" step="0.05"></label>
+            <label><span>Z</span><input id="target-offset-z" type="number" step="0.05"></label>
+          </div>
+          <button id="reset-camera-auto" class="버튼 고스트 넓게 작은버튼">자동 구도로 되돌리기</button>
+        </div>
+        <div id="actor-transform-controls" hidden>
+          <div class="보조라벨">배우 시작 위치</div>
+          <div class="좌표그리드">
+            <label><span>X</span><input id="actor-x" type="number" step="0.1"></label>
+            <label><span>Y</span><input id="actor-y" type="number" step="0.1"></label>
+            <label><span>Z</span><input id="actor-z" type="number" step="0.1"></label>
+          </div>
+          <label class="필드"><span>회전</span><div class="입력단위"><input id="actor-rotation" type="number" step="1"><span>°</span></div></label>
+          <p class="도움말">배우 이동은 전체 액션 경로를 함께 이동합니다.</p>
+        </div>
       </section>
       <section class="속성섹션 렌더섹션">
         <div class="섹션제목">영상 출력</div>

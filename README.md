@@ -1,66 +1,61 @@
-# Previz Studio v1.2.3
+# Previz Studio v1.3.0
 
 영화·광고 제작자와 AI 영상 크리에이터를 위한 웹 기반 3D 프리비즈 도구입니다.
 
-v1.2.3은 새 기능을 추가하지 않고 **카메라 프리뷰 / PNG / 영상 출력의 단일 프레임 파이프라인**과 **Vite 기반 배포 무결성**을 완성하는 안정화 버전입니다.
+## v1.3.0 핵심
 
-## 핵심 변경 목표
+- 결정론적 자연어 블로킹
+  - 배우 수 (`한 사람`, `두 사람`)
+  - `격투`, `싸움`, `추격`, `달리기`, `걷기`
+  - `다양한 각도`, `역동적`, `익사이팅`, `핸드헬드` 카메라 힌트
+- `FIGHT` 액션과 2인 격투 기본 시퀀스
+- Camera Editing
+  - 위치 X/Y/Z
+  - 높이
+  - 피사체 거리
+  - 타겟
+  - Start / End transform
+- Three.js Transform Gizmo
+  - Camera 이동 / 회전 / 타겟
+  - Actor 이동 / 회전
+- 사용자 카메라 수정을 manual override로 보존
+- Camera Preview / PNG / Video Export Canonical Frame 유지
+- Vite production build + hashed assets
 
-### 1. Canonical Frame
-같은 마스터 시간의 Shot Camera는 한 번의 공통 경로로 계산·렌더됩니다.
-
-```text
-Scene + Master Time
-        ↓
-Actor / Camera evaluation
-        ↓
-Canonical Output Frame (기본 16:9)
-        ↓
-Preview / PNG / MP4 / WebM
-```
-
-UI 패널의 가로세로 비율은 Shot Camera의 aspect/FOV를 변경하지 않습니다. 출력 해상도가 달라져도 구도는 동일해야 합니다.
-
-### 2. Vite + hashed assets
-- Three.js를 npm dependency로 번들링
-- runtime CDN import map 제거
-- `npm run build` → `dist/`
-- Production JS/CSS content hash 적용
-- HTML과 오래된 renderer 모듈이 섞이는 캐시 문제 방지
-- runtime build ID로 v1.2.3 구성요소 일치 확인
-
-## 공식 검증 장면
-
-20초 야간 도로 추격 장면, `1920×1080 / 24 FPS`.
-
-1. 0–4초 — 후방 3/4 와이드
-2. 4–9초 — 측면 트래킹
-3. 9–14초 — 추격자 후방 핸드헬드
-4. 14–20초 — 두 인물 사이 트래킹/푸시
-
-## 개발 실행
-
-의존성 설치 후:
+## 기본 실행
 
 ```bash
 npm install
 npm run dev
 ```
 
-Production build:
+Production:
 
 ```bash
 npm run build
 npm run preview
 ```
 
-기존 간단한 Node 정적 서버는 fallback/debug 용도로만 유지할 수 있으며, Production 기준은 Vite `dist/`입니다.
+## 프롬프트 예시
 
-## 검증
-
-```bash
-npm run check
-npm test
+```text
+두 사람이 격렬하게 하는 격투씬, 카메라가 다양한 각도로 익사이팅한 앵글로 따라간다.
 ```
 
-자동 검증은 **22/22 PASS**입니다. 현재 작업 컨테이너는 npm registry 접근이 차단되어 실제 Vite dependency install/build는 수행하지 못했습니다. GitHub/Vercel 배포에서 `npm install → npm run build`를 확인한 뒤 Camera Preview와 렌더 영상을 `0.5 / 4.5 / 9.5 / 14.5 / 19.0초`에서 다시 비교합니다. 이 검증이 통과한 뒤 UI 최종 polish 단계로 이동합니다.
+예상 결과는 Actor 2명, FIGHT action, 20초 멀티샷 카메라입니다.
+
+## 카메라 편집
+
+현재 Shot에서 `카메라`를 선택한 뒤 시작/끝 키를 선택하고 위치, 높이, 거리, 타겟을 수정할 수 있습니다. 편집 뷰의 Transform Gizmo 또는 Inspector 숫자 입력을 사용할 수 있습니다.
+
+사용자가 수동으로 수정한 Shot은 manual override 상태가 되며 `자동 구도로 되돌리기`를 누르기 전까지 자동 연출 계산보다 우선합니다.
+
+## 출력
+
+Camera Preview와 PNG/MP4/WebM 출력은 동일한 Canonical Frame 경로를 사용합니다.
+
+## 현재 검증 상태
+
+자동 테스트는 **29/29 PASS**입니다. 현재 실행 환경에는 npm dependency cache가 없어 실제 Vite production build를 로컬에서 재실행하지 못했습니다. `package.json`은 exact version으로 고정되어 있으며 Vercel 배포 시 `npm install → vite build`로 검증합니다.
+
+Three.js가 정상 로드되는 production renderer에서는 Transform Gizmo를 사용할 수 있습니다. Canvas fallback에서는 Inspector 숫자 입력으로 동일한 Scene Document를 수정할 수 있지만 3D TransformControls 자체는 표시하지 않습니다.
