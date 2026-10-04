@@ -1,0 +1,7 @@
+[hidden]{display:none!important}
+.vector-field input{padding-right:2px}
+.vector-field input::-webkit-inner-spin-button{display:none}
+.track-labels>div span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.viewport-bottom{color:#d1dbe0;text-shadow:0 1px 3px #000}
+.viewport-top{color:#d2dfdf;text-shadow:0 1px 3px #000}
+@media(max-width:540px){.field-row{white-space:nowrap}.vector-field span{left:4px}.vector-field input{padding-left:15px;font-size:10px}.inspector-section .section-label{font-size:9px;letter-spacing:.5px}.inspector-section .section-label>span{font-size:7px}}

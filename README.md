@@ -1,75 +1,89 @@
-# Previz Studio v1.3.5 — Recovery Baseline
+# Previz Studio-v1.0.1
 
-영화·광고 제작자와 AI 영상 크리에이터를 위한 웹 기반 3D 프리비즈 도구입니다.
+간편 3D 편집과 장면·카메라 프리셋을 결합한 로컬 프리비즈 도구입니다. 인물과 사물을 배치하고 카메라 움직임을 설계해 AI 영상 제작용 레퍼런스를 만들 수 있습니다.
 
-## 이번 버전의 의미
-v1.3.5는 새 기능 버전이 아닙니다. 사용자가 직접 제공한 **정상 동작 v1.3.1 ZIP**으로 완전히 롤백한 뒤 다시 시작하기 위한 Recovery Baseline입니다.
+## 설치 및 실행
 
-v1.3.2~v1.3.4에서 추가했던 상태 관리와 Camera Safety 기능은 포함하지 않습니다.
+검증 환경은 Windows, Node.js 24, Microsoft Edge입니다. Node.js와 npm을 설치한 뒤 이 README가 있는 폴더에서 실행하세요.
 
-## 보존되는 v1.3.1 기능
-- 기본 **30 FPS**
-- 24 / 25 / 30 / 60 FPS 선택
-- 20초 @ 30 FPS = **600 frames**
-- Camera Preview / PNG / MP4/WebM Canonical 16:9 Frame
-- Camera 위치 / 높이 / 거리 / 타겟 직접 편집
-- Camera Transform Gizmo
-- Actor Transform Gizmo
-- Manual Camera Override
-- 2인 FIGHT 장면 파서
-- Chase sequence
-- Vite + hashed production assets
-
-## 이번 버전에서 넣지 않는 기능
-- Scene Tree 선택 동기화
-- World / Local
-- Prompt Dock 접기
-- Undo / Redo
-- Camera Safety / collision
-- fallback camera
-- Camera keyframes
-- 외부 AI 연결
-
-## 실행
-
-```bash
-npm install
-npm run dev
+```sh
+npm ci --prefix 2026-09-20-dependencies
+node 2026-09-20-server.mjs
 ```
 
-Production:
+브라우저에서 [http://127.0.0.1:4173](http://127.0.0.1:4173)을 엽니다. 서버 종료는 Ctrl+C입니다. 동일한 포트로 이전 서버가 실행 중이면 먼저 종료하세요. HTML을 파일 탐색기에서 직접 여는 방식은 지원하지 않습니다.
 
-```bash
-npm run build
-npm run preview
+의존성은 package-lock.json에 기록된 버전으로 설치됩니다. node_modules는 저장소에 포함하지 않습니다. 별도의 API 키나 환경 변수는 필요하지 않습니다.
+
+## 기능과 범위
+
+- 인물 마네킹·박스·구·원기둥 배치 및 변형
+- 대화·제품·이동 장면 프리셋과 카메라 움직임 프리셋
+- 키프레임, 타임라인 재생, 실행 취소·다시 실행
+- JSON 저장·불러오기 및 브라우저 자동저장
+- 촬영 화면 MP4/WebM 내보내기
+
+관절 애니메이션, 음성, AI 생성 서비스 연결, 계정 및 서버 저장은 포함하지 않습니다. 서버는 로컬 주소에만 바인딩됩니다. 이 구성은 GitHub Pages에 그대로 게시하는 정적 배포 구성이 아닙니다.
+
+영상은 720p, 목표 30fps 실시간 녹화입니다. 브라우저 지원과 GPU 성능에 따라 형식 및 프레임 간격이 달라지며 고정 30fps는 보장하지 않습니다.
+
+자세한 조작은 [사용 설명서](User%20manual.md)를 참고하세요.
+
+## v1.0.1 수정
+
+- 장면 프리셋 교체 시 촬영 화면비 갱신
+- 경계 좌표 복제 시 저장 가능한 위치 범위 유지
+- 변형 도구의 잘못된 배율·좌표 방지
+- 인접 키프레임의 일괄 삭제·덮어쓰기 방지
+
+앱 버전은 1.0.1이며 기존 파일 호환성을 위해 JSON 형식 버전은 1.0.0을 유지합니다.
+
+## 테스트
+
+모델 테스트는 서버 없이 실행할 수 있습니다.
+
+```sh
+node --test 2026-09-20-model.test.mjs
 ```
 
-검증:
+브라우저 검증은 서버를 실행한 상태에서 다른 터미널로 실행하세요. Microsoft Edge가 필요합니다.
 
-```bash
-npm test
-npm run check
+```sh
+node 2026-10-04-previz-studio-v1.0.1-regression.mjs
 ```
 
-## 기본 출력
+전체 흐름과 영상 디코딩 검증은 ffprobe와 ffmpeg도 PATH에 있어야 합니다. 전체 검증 명령은 Windows 기준입니다.
 
-```text
-1920 × 1080
-30 FPS
-20.0 sec
-600 frames
+```sh
+node 2026-10-04-previz-studio-v1.0.1-regression.mjs --full
 ```
 
-## Recovery 개발 원칙
-v1.3.5 Production이 정상임을 확인한 후 기능을 **한 번에 하나만** 추가합니다. 각 기능은 다음 단계 전에 Production에서 Preview/Render 회귀 검증을 통과해야 합니다.
+새 검증기는 실행 시각별 폴더를 생성합니다. 생성되는 영상·화면 캡처·결과 JSON은 .gitignore로 제외됩니다. 기존 browser-test 파일은 새 검증기에서 재사용하므로 포함했으며 직접 실행보다 위 명령을 권장합니다.
 
-## Baseline 검증
-사용자 업로드 원본 v1.3.1에서 직접 확인:
-- Automated tests: **32/32 PASS**
-- JavaScript syntax check: **PASS**
+## GitHub 업로드
 
+이 README와 .gitignore가 저장소 최상위에 오도록 **이 폴더 안의 내용**을 업로드하세요. .gitignore도 함께 포함해야 설치한 의존성·캐시·녹화 파일이 커밋되지 않습니다.
 
-## v1.3.5 Local Verification
-- Automated tests: **34/34 PASS**
-- JavaScript syntax check: **PASS**
-- Runtime core hash lock: **PASS** — core renderer/app/sequence/exporter files are identical to the uploaded stable v1.3.1 baseline.
+개인 PC 경로, 내부 작업 기록, 이전 검증 결과, 설치된 의존성 및 npm 캐시는 이 패키지에 포함하지 않았습니다.
+
+## 포함 파일 전체 목록
+
+아래 경로는 모두 이 README가 있는 저장소 최상위 기준입니다.
+
+| 파일 | 역할 |
+|---|---|
+| README.md | 설치·실행·테스트·업로드 안내 |
+| .gitignore | 의존성·캐시·검증 산출물 제외 |
+| User manual.md | 사용 설명서 |
+| 2026-09-20-index.html | 앱 진입 화면 |
+| 2026-09-20-app.mjs | 편집기 UI 및 상태 처리 |
+| 2026-09-20-model.mjs | 프로젝트·키프레임 모델 |
+| 2026-09-20-stage.mjs | Three.js 장면 렌더링 |
+| 2026-09-20-server.mjs | 로컬 서버 |
+| 2026-09-20-style.css | 기본 스타일 |
+| 2026-09-20-visual-fixes.css | 화면 보정 스타일 |
+| 2026-09-20-model.test.mjs | 모델 테스트 |
+| 2026-09-20-browser-test.mjs | 기존 브라우저 시나리오 |
+| 2026-10-04-previz-studio-v1.0.1-regression.mjs | 회귀·전체 흐름·영상 검증 |
+| 2026-09-20-dependencies/package.json | 의존성 명세 |
+| 2026-09-20-dependencies/package-lock.json | 의존성 잠금 파일 |

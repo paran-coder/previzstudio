@@ -1,0 +1,33 @@
+import {chromium} from './2026-09-20-dependencies/node_modules/playwright/index.mjs';
+import assert from 'node:assert/strict';
+import {mkdir,readFile,writeFile} from 'node:fs/promises';
+import path from 'node:path';
+const root=process.cwd();const output=path.join(root,'2026-09-20-verification');await mkdir(output,{recursive:true});
+const browser=await chromium.launch({channel:'msedge',headless:true,args:['--enable-unsafe-swiftshader'],downloadsPath:output});
+const page=await browser.newPage({viewport:{width:1440,height:1000},acceptDownloads:true});const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
+const results=[];const check=(name,value)=>{assert.ok(value,name);results.push(name);console.log('PASS '+name);};
+try{
+ await page.goto('http://127.0.0.1:4173');await page.locator('.object-row').first().waitFor();
+ check('initial scene has camera and four objects',await page.locator('.object-row').count()===5);
+ await page.screenshot({path:path.join(output,'2026-09-20-desktop.png'),fullPage:true});
+ check('canvas renders with nonzero dimensions',await page.locator('canvas').evaluate(c=>c.width>500&&c.height>200));
+ await page.locator('#addObject').click();await page.locator('[data-add=box]').click();check('add object selects new mesh',await page.locator('.object-row').count()===6);
+ await page.locator('#position0').fill('2');await page.locator('#position0').press('Tab');await page.locator('#addKey').click();
+ await page.locator('#scrub').evaluate(e=>{e.value='6';e.dispatchEvent(new Event('input',{bubbles:true}));});
+ await page.locator('#position0').fill('4');await page.locator('#position0').press('Tab');await page.locator('#addKey').click();
+ await page.locator('#scrub').evaluate(e=>{e.value='3';e.dispatchEvent(new Event('input',{bubbles:true}));});check('timeline interpolates edited object position',Math.abs(Number(await page.locator('#position0').inputValue())-3)<.02);
+ const jsonDownload=page.waitForEvent('download');await page.locator('#save').click();const json=await jsonDownload;const jsonPath=path.join(output,'2026-09-20-project-roundtrip.json');await json.saveAs(jsonPath);const saved=JSON.parse(await readFile(jsonPath,'utf8'));check('saved project preserves animation keys',saved.objects.at(-1).keys.length===2);
+ await page.locator('#delete').click();check('object deletion updates scene',await page.locator('.object-row').count()===5);await page.locator('#undo').click();check('undo restores deleted object',await page.locator('.object-row').count()===6);
+ await page.locator('#fileInput').setInputFiles(jsonPath);await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('복원'));check('import restores scene',await page.locator('.object-row').count()===6);
+ await page.locator('#fileInput').setInputFiles({name:'invalid.json',mimeType:'application/json',buffer:Buffer.from('{"version":"unknown"}')});await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('올바른'));check('invalid import preserves current scene',await page.locator('.object-row').count()===6);
+ await page.locator('[data-preset=product]').click();await page.locator('#cameraMotion').selectOption('orbit');await page.locator('#applyMotion').click();check('orbit generates camera keyframes',await page.locator('#cameraTrack .key-dot').count()===13);
+ await page.locator('#cameraView').click();await page.screenshot({path:path.join(output,'2026-09-20-camera.png')});
+ await page.locator('#duration').fill('2');await page.locator('#duration').press('Tab');const videoDownload=page.waitForEvent('download',{timeout:30000});await page.locator('#export').click();const video=await videoDownload;const videoName='2026-09-20-reference-sample.'+video.suggestedFilename().split('.').at(-1);const videoPath=path.join(output,videoName);await video.saveAs(videoPath);const bytes=await readFile(videoPath);check('video download contains encoded data',bytes.length>10000);
+ const data='data:video/'+(videoName.endsWith('mp4')?'mp4':'webm')+';base64,'+bytes.toString('base64');
+ const metadata=await page.evaluate(async data=>{const v=document.createElement('video');v.muted=true;v.src=data;document.body.append(v);await new Promise((resolve,reject)=>{v.onloadeddata=resolve;v.onerror=()=>reject(Error('Video decode failed'));});const width=v.videoWidth,height=v.videoHeight;await v.play();await new Promise(r=>setTimeout(r,500));const time=v.currentTime;v.pause();v.remove();return {width,height,time,duration:v.duration};},data);check('exported video decodes and advances',metadata.width===1280&&metadata.height===720&&metadata.time>.1);
+ await page.locator('#aspect').selectOption('9:16');const ratio=await page.locator('canvas').evaluate(c=>c.clientWidth/c.clientHeight);check('portrait framing preserves 9:16 aspect',Math.abs(ratio-9/16)<.01);
+ await page.locator('#editorView').click();await page.locator('[data-preset=walk]').click();await page.locator('#play').click();await page.waitForFunction(()=>document.querySelector('#timeReadout').textContent!=='00:00.00');await page.locator('#play').click();check('playback advances time',await page.locator('#timeReadout').textContent!=='00:00.00');
+ await page.locator('#help').click();check('help is keyboard accessible modal',await page.locator('#helpDialog').evaluate(d=>d.open));await page.keyboard.press('Escape');
+ await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(output,'2026-09-20-mobile.png'),fullPage:true});check('mobile has no page-wide horizontal overflow',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ check('no browser runtime errors',errors.length===0);await writeFile(path.join(output,'2026-09-20-results.json'),JSON.stringify({results,metadata,video:videoName,errors},null,2));
+}catch(error){await page.screenshot({path:path.join(output,'2026-09-20-failure.png'),fullPage:true});console.error('BROWSER ERRORS',errors);throw error;}finally{await browser.close();}
