@@ -1,55 +1,17 @@
-# Previz Studio v1.3.5 — Recovery Checklist
+# Previz Studio-v1.4.0 Checklist
 
-## Phase 0 — Baseline Lock
-- [x] 사용자 업로드 `previz-studio-v1.3.1(1).zip`을 직접 해제
-- [x] 업로드본을 유일한 코드 baseline으로 지정
-- [x] 원본 v1.3.1 `npm test` 32/32 PASS
-- [x] 원본 v1.3.1 `npm run check` PASS
+- [x] 실제 배포 진입점과 원인 확인
+- [x] 변경 계획 승인
+- [x] 실패 재현 테스트 후 파서/스키마/렌더러 수정
+- [x] 두사람/두 사람 입력의 배우 2명 구성
+- [x] 나이프 팔 부착 및 시간에 따른 이동
+- [x] 명시적 고정 카메라 위치/타깃 유지
+- [x] 지원 범위·기본 가정·미지원 경고 표시
+- [x] Canvas 나이프 표시 제한 안내
+- [x] 자동 테스트 41개 및 브라우저 검사 16개 통과
+- [x] npm run check / npm run build 통과
+- [x] 1920×1080, 30fps, 4초 MP4 및 디코딩 확인
+- [x] 사용 설명서의 실제 Vite 앱 기준 갱신
+- [ ] 사용자 업로드 후 Vercel Production 확인
 
-## Phase 1 — Docs First
-- [x] `context-notes.md`
-- [x] `checklist.md`
-- [x] `README.md`
-- [x] `User manual.md`
-
-## Phase 2 — Recovery Version Identity
-- [x] package version = 1.3.5
-- [x] APP_VERSION = 1.3.5
-- [x] SCENE_VERSION = 1.3.5
-- [x] index / health / build labels = 1.3.5
-- [x] tests의 version expectation만 1.3.5로 갱신
-
-## Phase 3 — No-Feature Regression Guard
-- [x] v1.3.2 Scene Tree selection sync 없음
-- [x] World / Local 없음
-- [x] Prompt collapse 없음
-- [x] Undo / Redo 없음
-- [x] Camera Safety 없음
-- [x] fallback camera 없음
-- [x] Camera keyframe 없음
-
-## Phase 4 — Stable Features Preserved
-- [x] 기본 30 FPS
-- [x] 24 / 25 / 30 / 60 FPS
-- [x] 20 sec @ 30 FPS = 600 frames
-- [x] Canonical 16:9 Preview
-- [x] Preview / PNG / Video 공통 frame path
-- [x] Camera/Actor Transform
-- [x] Manual Camera Override
-- [x] Fight / Chase parser
-- [x] Vite hashed assets
-
-## Phase 5 — Local Verification
-- [x] `npm test` PASS — 34/34
-- [x] `npm run check` PASS
-- [x] baseline과 기능 diff 확인 — runtime core `app.js / renderer-three.js / sequence.js / video-exporter.js` SHA-256가 업로드 v1.3.1과 동일
-- [x] ZIP / SHA-256 생성
-
-## Phase 6 — Production Acceptance
-- [ ] 첫 접속 편집 뷰 정상
-- [ ] 첫 카메라 프리뷰 정상
-- [ ] 편집 ↔ 프리뷰 반복 전환 정상
-- [ ] Camera Gizmo 수정 후 Preview 정상
-- [ ] 20초 30 FPS Preview 정상
-- [ ] 20초 30 FPS MP4 정상
-- [ ] Preview ↔ MP4 구도 일치
+자체 평가: 9/10. 로컬 핵심 흐름은 확인했으나 실배포와 임의 자연어 해석은 보장하지 않습니다.

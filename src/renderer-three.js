@@ -177,8 +177,19 @@ export class ThreeSceneEngine {
     const hemi=new T.HemisphereLight(env.time==='night'?0x7f9abd:0xdbe8f5,0x18130f,env.time==='night'?.55:1.6);this.world.add(hemi);
     const moon=new T.DirectionalLight(env.time==='night'?0xc9dcff:0xffffff,env.time==='night'?2.1:2.8);moon.position.set(-8,12,-6);moon.castShadow=true;moon.shadow.mapSize.set(2048,2048);moon.shadow.camera.left=-24;moon.shadow.camera.right=24;moon.shadow.camera.top=24;moon.shadow.camera.bottom=-24;this.world.add(moon);
     if(env.type==='road')this.buildRoad();else this.buildGeneric(env.type);
-    this.document.props.forEach((p,i)=>{if(p.type==='car')this.createCar(i,p.position,p.rotationY);else this.addBox([2,1.2,1.6],[p.position[0],.6,p.position[2]],0x4b535a);});
+    this.document.props.filter(p=>p.type!=='knife').forEach((p,i)=>{if(p.type==='car')this.createCar(i,p.position,p.rotationY);else this.addBox([2,1.2,1.6],[p.position[0],.6,p.position[2]],0x4b535a);});
     this.document.actors.forEach((actor,i)=>{const rig=this.createMannequin(i);rig.root.position.set(...actor.position);rig.root.rotation.y=actor.rotationY;this.world.add(rig.root);this.actorRigs.set(actor.id,rig);});
+    this.document.props.filter(p=>p.type==='knife').forEach(p=>this.attachKnife(p));
+  }
+  attachKnife(p){
+    const rig=this.actorRigs.get(p.actorId);if(!rig)return;
+    const T=this.THREE,g=new T.Group();g.name=p.id;g.userData.propType='knife';
+    const handle=this.addBox([.075,.18,.075],[0,0,0],0x30343a,g);
+    const guard=this.addBox([.19,.035,.08],[0,-.095,0],0xc6cbd0,g);
+    const blade=this.addBox([.075,.36,.025],[0,-.29,0],0xe1e6ed,g);
+    const tip=new T.Mesh(new T.ConeGeometry(.05,.13,4),this.mat(0xe1e6ed));tip.rotation.z=Math.PI;tip.position.y=-.535;g.add(tip);
+    g.position.set(...p.position);g.rotation.y=p.rotationY;
+    (p.hand==='left'?rig.armL:rig.armR).add(g);
   }
   buildGuides(){
     const T=this.THREE;const grid=new T.GridHelper(70,70,0x64717e,0x2b3239);grid.material.opacity=.25;grid.material.transparent=true;grid.position.y=.025;grid.userData.fixedGuide=true;this.guides.add(grid);this.addPathGuides();
@@ -190,7 +201,7 @@ export class ThreeSceneEngine {
   }
   refreshPathGuides(){const stale=this.guides.children.filter(o=>o.userData?.pathGuide);for(const o of stale){this.guides.remove(o);this.disposeObject(o);}this.addPathGuides();}
   updateLabels(){this.guides.children.filter(o=>o.isSprite&&Number.isInteger(o.userData.actorIndex)).forEach(sprite=>{const actor=this.document.actors[sprite.userData.actorIndex],state=evaluateActorAtTime(this.document,actor,this.time);sprite.position.set(state.position[0],state.position[1]+2.85,state.position[2]);});}
-  applyActorPose(actor,state){const rig=this.actorRigs.get(actor.id);if(!rig)return;rig.root.position.set(state.position[0],state.position[1]+state.bob,state.position[2]);rig.root.rotation.y=state.rotationY;rig.torsoPivot.rotation.x=-state.lean;rig.legL.rotation.x=state.stride;rig.legR.rotation.x=-state.stride;if(state.action==='fight'){const swing=state.fightSwing||0,guard=state.fightGuard||0;rig.armL.rotation.x=-1.05+Math.max(0,-swing)*1.35;rig.armR.rotation.x=-1.05+Math.max(0,swing)*1.35;rig.armL.rotation.z=.28+guard*.18;rig.armR.rotation.z=-.28-guard*.18;rig.torsoPivot.rotation.y=swing*.11;}else{rig.armL.rotation.x=-state.stride*.75;rig.armR.rotation.x=state.stride*.75;rig.armL.rotation.z=0;rig.armR.rotation.z=0;rig.torsoPivot.rotation.y=0;}}
+  applyActorPose(actor,state){const rig=this.actorRigs.get(actor.id);if(!rig)return;rig.root.position.set(state.position[0],state.position[1]+state.bob,state.position[2]);rig.root.rotation.y=state.rotationY;rig.torsoPivot.rotation.x=-state.lean;rig.legL.rotation.x=state.stride;rig.legR.rotation.x=-state.stride;if(['fight','knife_action'].includes(state.action)){const swing=state.fightSwing||0,guard=state.fightGuard||0;rig.armL.rotation.x=-1.05+Math.max(0,-swing)*1.35;rig.armR.rotation.x=-1.05+Math.max(0,swing)*1.35;rig.armL.rotation.z=.28+guard*.18;rig.armR.rotation.z=-.28-guard*.18;rig.torsoPivot.rotation.y=swing*.11;}else{rig.armL.rotation.x=-state.stride*.75;rig.armR.rotation.x=state.stride*.75;rig.armL.rotation.z=0;rig.armR.rotation.z=0;rig.torsoPivot.rotation.y=0;}}
   frameEditOverview(){
     if(!this.document)return;
     const view=deriveEditOverview(this.document),T=this.THREE;

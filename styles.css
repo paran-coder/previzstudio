@@ -46,3 +46,7 @@
 .FPS선택{width:100%;margin-top:4px;border:0;background:transparent;color:var(--text);font:650 11px ui-monospace,monospace;outline:0;cursor:pointer}
 .FPS선택:focus-visible{box-shadow:0 0 0 1px var(--accent)}
 .렌더설정 .출력설정{grid-column:1/-1}
+
+.prompt-entry{min-width:0;flex:1}.prompt-entry textarea{width:100%;box-sizing:border-box}.interpretation-details{font-size:11px;line-height:1.5;color:#b9c8d4;margin-bottom:6px}.interpretation-details summary{cursor:pointer;color:#d6f69a}#interpretation{white-space:pre-line;max-height:104px;overflow:auto;padding:5px 0}.프롬프트독{align-items:center}
+
+@media(min-width:931px){.앱{grid-template-rows:64px minmax(0,1fr) auto}}

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#06080a" />
-  <title>Previz Studio v1.3.5 — 3D 프리비즈 레퍼런스</title>
+  <title>Previz Studio v1.4.0 — 3D 프리비즈 레퍼런스</title>
   <meta name="description" content="인물 동작과 카메라 무빙을 3D 프리비즈로 만들고 AI 영상 생성용 레퍼런스 영상으로 렌더합니다." />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Previz Studio — 자연어로 만드는 3D 프리비즈" />
@@ -25,7 +25,7 @@
     <div class="브랜드">
       <div class="브랜드마크">P</div>
       <div class="브랜드텍스트">
-        <div class="브랜드행"><strong>Previz Studio</strong><span class="버전">v1.3.5</span></div>
+        <div class="브랜드행"><strong>Previz Studio</strong><span class="버전">v1.4.0</span></div>
         <span class="브랜드설명">AI 영상 레퍼런스용 3D 프리비즈</span>
       </div>
     </div>
@@ -57,7 +57,7 @@
             <div class="샷요약상단"><span id="viewport-shot-id" class="샷아이디">SHOT 01</span><strong id="viewport-shot-title">후방 3/4 와이드</strong></div>
             <div class="뷰포트메타"><span id="environment-label" class="필">도로 · 밤</span><span id="camera-label" class="필">24mm · 돌리 아웃</span></div>
           </div>
-          <div class="엔진상태"><span id="renderer-status" class="엔진뱃지">렌더러 준비 중</span><span id="build-status" class="엔진뱃지 빌드뱃지">APP v1.3.5</span></div>
+          <div class="엔진상태"><span id="renderer-status" class="엔진뱃지">렌더러 준비 중</span><span id="build-status" class="엔진뱃지 빌드뱃지">APP v1.4.0</span></div>
         </div>
         <div id="view-status" class="뷰상태"><strong>편집 작업 시점</strong><span>최종 출력 화면이 아닙니다.</span></div>
         <div id="viewport" class="뷰포트"><div class="로딩"><span></span><b>3D 엔진 준비 중</b></div></div>
@@ -152,7 +152,7 @@
 
   <section class="프롬프트독">
     <div class="프롬프트맥락"><span class="디렉터점"></span><div><span class="메타라벨">프리비즈 디렉터</span><strong>표현 가능한 동작과 카메라를 빠르게 블로킹합니다.</strong></div></div>
-    <textarea id="prompt" rows="2" spellcheck="false">밤의 도로. 한 사람이 도망치고 다른 사람이 뒤따라 쫓아간다. 카메라는 역동적으로 두 사람 사이를 오가며 추격한다.</textarea>
+    <div class="prompt-entry"><details class="interpretation-details" open><summary>프롬프트 구성 결과</summary><div id="interpretation" role="status" aria-live="polite"></div></details><textarea id="prompt" rows="2" spellcheck="false">밤의 도로. 한 사람이 도망치고 다른 사람이 뒤따라 쫓아간다. 카메라는 역동적으로 두 사람 사이를 오가며 추격한다.</textarea></div>
     <button id="generate" class="버튼 주버튼"><span>장면 만들기</span><kbd>⌘↵</kbd></button>
   </section>
 </div>

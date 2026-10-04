@@ -22,7 +22,7 @@ const els={
 const movementLabels={static:'고정',dolly_in:'돌리 인',dolly_out:'돌리 아웃',track_follow:'팔로우 트래킹',track_between:'사이 트래킹',orbit:'오비트',handheld_follow:'핸드헬드 팔로우'};
 const movementShort={static:'STATIC',dolly_in:'DOLLY IN',dolly_out:'DOLLY OUT',track_follow:'TRACK FOLLOW',track_between:'TRACK BETWEEN',orbit:'ORBIT',handheld_follow:'HANDHELD FOLLOW'};
 const archetypeLabels={free:'FREE CAMERA',rear_three_quarter:'REAR 3/4 WIDE',side_track:'SIDE TRACK',rear_follow:'REAR FOLLOW',between_push:'BETWEEN PUSH'};
-const actionLabels={idle:'대기',walk:'걷기',run:'달리기',chase:'추격',fight:'격투',turn:'회전',stop:'멈춤'};
+const actionLabels={idle:'대기',walk:'걷기',run:'달리기',chase:'추격',fight:'격투',knife_action:'나이프 블로킹',turn:'회전',stop:'멈춤'};
 const envLabels={road:'도로',urban_alley:'도시 골목',warehouse:'창고',corridor:'복도',office:'사무실',studio:'스튜디오'};
 let sceneDoc=directPromptFallback(els.prompt.value),engine=null,currentShotIndex=0,toastTimer=0,rendering=false,currentView='edit',editTarget='camera',cameraEditKey='start',transformMode='translate';
 
@@ -46,10 +46,16 @@ function setProjectFps(value){
   if(sceneDoc.sequence.fps===fps){syncSequenceUI();return;}
   const next=cloneSceneDocument(sceneDoc);next.sequence.fps=fps;const check=validateSceneDocument(next);
   if(!check.ok){showToast(check.errors[0]);syncSequenceUI();return;}
-  sceneDoc=next;engine.document=sceneDoc;engine.refreshEditing?.();els.json.textContent=JSON.stringify(sceneDoc,null,2);syncSequenceUI();renderTracks();updateTimeUI(Math.min(engine.time,sceneDoc.sequence.duration),false);syncTransformUI();
+  sceneDoc=next;engine.document=sceneDoc;engine.refreshEditing?.();els.json.textContent=JSON.stringify(sceneDoc,null,2);showInterpretation(sceneDoc);syncSequenceUI();renderTracks();updateTimeUI(Math.min(engine.time,sceneDoc.sequence.duration),false);syncTransformUI();
   showToast(`${fps} FPS · ${Math.round(sceneDoc.sequence.duration*fps)}프레임으로 변경했습니다.`);
 }
 
+function showInterpretation(doc){
+  const box=document.querySelector('#interpretation');if(!box)return;
+  const info=doc.interpretation;
+  box.textContent=info?['구성 결과: '+info.summary,...info.assumptions.map(x=>'기본값: '+x),...info.warnings.map(x=>'미지원/확인: '+x),'지원 구문 기반 구성 · 외부 AI 연결 없음'].join('\n'):'기존 장면';
+  if(engine instanceof CanvasSceneEngine && doc.props.some(p=>p.type==='knife'))box.textContent+='\nCanvas 대체 모드에서는 나이프 소품 표시를 지원하지 않습니다. WebGL 브라우저를 사용해주세요.';
+}
 async function initEngine(){
   const forceCanvas=new URLSearchParams(location.search).get('renderer')==='canvas';
   if(forceCanvas){const e=new CanvasSceneEngine(els.viewport);els.renderer.textContent='Canvas 검증 렌더러';els.renderer.classList.add('대체');return e;}
@@ -159,7 +165,7 @@ function setView(view){
 async function loadScene(doc){
   const check=validateSceneDocument(doc);if(!check.ok){showToast(check.errors[0]);throw new Error(check.errors.join(' '));}
   sceneDoc=doc;await engine.loadDocument(sceneDoc);engine.onTime=(time,playing)=>updateTimeUI(time,playing);engine.onDocumentEdit=syncFromEngineEdit;
-  els.continuity.textContent=sceneDoc.scene.continuityKey;els.json.textContent=JSON.stringify(sceneDoc,null,2);
+  els.continuity.textContent=sceneDoc.scene.continuityKey;els.json.textContent=JSON.stringify(sceneDoc,null,2);showInterpretation(sceneDoc);
   syncSequenceUI();populateTransformTargets();renderSceneTree();renderTracks();updateTimeUI(0,false);setView(currentView);syncTransformUI();
 }
 
@@ -169,7 +175,7 @@ function exportSceneSlug(){const actions=sceneDoc.actors.flatMap(a=>a.actions||[
 function exportBaseName(){return `previz-${exportSceneSlug()}-${Math.round(sceneDoc.sequence.duration)}s-v${APP_VERSION}`;}
 async function captureRole(role){const shot=selectedShot(),t=role==='start'?shot.start:role==='mid'?(shot.start+shot.end)/2:Math.max(shot.start,shot.end-1/sceneDoc.sequence.fps);const blob=await engine.captureAtTime(t);if(!blob)return showToast('프레임 캡처 실패');downloadBlob(blob,`previz-shot${String(currentShotIndex+1).padStart(2,'0')}-${role}.png`);showToast(`${role} PNG를 저장했습니다.`);}
 
-els.generate.addEventListener('click',async()=>{if(rendering)return;const prompt=els.prompt.value.trim();if(!prompt)return;const projectFps=sceneDoc.sequence.fps;els.generate.disabled=true;els.generate.querySelector('span').textContent='블로킹 중…';try{const next=directPromptFallback(prompt);next.sequence.fps=projectFps;await loadScene(next);showToast('표현 가능한 동작과 카메라를 프리비즈로 만들었습니다.');}finally{els.generate.disabled=false;els.generate.querySelector('span').textContent='장면 만들기';}});
+els.generate.addEventListener('click',async()=>{if(rendering)return;const prompt=els.prompt.value.trim();if(!prompt)return;const projectFps=sceneDoc.sequence.fps;els.generate.disabled=true;els.generate.querySelector('span').textContent='블로킹 중…';try{const next=directPromptFallback(prompt);next.sequence.fps=projectFps;await loadScene(next);showToast(next.interpretation?.warnings.length?'일부 요청을 반영하지 못했습니다. 구성 결과를 확인해주세요.':'장면을 구성했습니다. 적용한 기본값을 확인해주세요.');}catch(error){showToast('장면 구성 실패: '+error.message);}finally{els.generate.disabled=false;els.generate.querySelector('span').textContent='장면 만들기';}});
 els.prompt.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='Enter')els.generate.click();});
 els.play.addEventListener('click',()=>{if(engine.time>=sceneDoc.sequence.duration-.001)engine.seek(0);engine.setPlaying(!engine.playing);updateTimeUI(engine.time,engine.playing);});
 els.reset.addEventListener('click',()=>engine.reset());

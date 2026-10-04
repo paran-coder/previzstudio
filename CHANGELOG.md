@@ -1,3 +1,11 @@
+# Previz Studio-v1.4.0 — 2026-10-04
+
+- 프롬프트의 인원, 마주보기, 나이프 액션 및 소품 구성 지원.
+- 명시적 카메라 지시 우선 및 고정 카메라 타깃 유지.
+- 해석 결과, 기본 가정, 미지원/Canvas 제한 표시.
+- 1.3.5 씬 문서 호환, 기존 영상 출력 보존.
+- 테스트 41개, 브라우저 점검 16개 통과. 실배포는 업로드 후 확인.
+
 # Changelog
 
 ## v1.3.5 — Recovery Baseline
@@ -40,3 +48,4 @@
 - Automated tests: **32/32 PASS**
 - 20 sec @ 30 FPS: **600 evaluated frames PASS**
 - FPS frame-count contract 24/25/30/60: PASS
+

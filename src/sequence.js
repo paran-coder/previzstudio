@@ -44,8 +44,8 @@ export function evaluateActorAtTime(doc, actorOrId, time) {
     }
     const p = clamp((t-action.start)/Math.max(.001,action.end-action.start),0,1);
     const moving = ['walk','run','chase'].includes(action.type);
-    const fighting = action.type === 'fight';
-    const speed = action.type === 'walk' ? 1.55 : moving ? 3.4 : fighting ? 1.35 : 0;
+    const fighting = ['fight','knife_action'].includes(action.type);
+    const speed = action.type === 'walk' ? 1.55 : moving ? 3.4 : fighting ? (action.type==='knife_action'?.65:1.35) : 0;
     const cycle = (t-action.start) * speed * Math.PI * 2 + (action.phaseOffset||0);
     const fightWave=fighting?Math.sin(cycle):0;
     state = {

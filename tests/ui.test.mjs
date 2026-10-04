@@ -54,7 +54,7 @@ test('Vite production build는 CDN import map 대신 hashed assets와 npm depend
   const vercel=JSON.parse(await readFile(new URL('vercel.json',root),'utf8'));
   assert.doesNotMatch(html,/importmap/);
   assert.doesNotMatch(html,/cdn\.jsdelivr\.net/);
-  assert.equal(pkg.version,'1.3.5');
+  assert.equal(pkg.version,'1.4.0');
   assert.equal(pkg.dependencies.three,'0.185.1');
   assert.equal(pkg.dependencies.mediabunny,'1.55.7');
   assert.match(pkg.scripts.build,/vite build/);

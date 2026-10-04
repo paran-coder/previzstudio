@@ -127,11 +127,73 @@ function genericScene(prompt,text) {
   };
 }
 
-export function directPromptFallback(rawPrompt) {
+function basePrompt(rawPrompt) {
   const prompt = String(rawPrompt || '').trim();
   const text = prompt.toLowerCase();
   const fight = has(text,['격투','격투씬','싸움','싸우','싸운','주먹','난투','fight','combat']);
   const chase = has(text,['쫓','추격','뒤따라','chase']) && has(text,['도망','달리','달린','뛰','뛴','run']);
   if (fight) return fightScene(prompt,text);
   return chase ? chaseScene(prompt,text) : genericScene(prompt,text);
+}
+
+
+// Supported-language composition. No external model is invoked by this director.
+export function directPromptFallback(rawPrompt) {
+  const prompt=String(rawPrompt||'').normalize('NFKC').trim();
+  const text=prompt.toLowerCase().replace(/(한|두|세|네)\s*사람/g,'$1 사람');
+  const compact=text.replace(/\s+/g,'');
+  const warnings=[],assumptions=[];
+  const countMatch=text.match(/(한|두|세|네|다섯|여섯|\d+)\s*(?:사람|명)/);
+  const counts={한:1,두:2,세:3,네:4,다섯:5,여섯:6};
+  const requested=countMatch?(counts[countMatch[1]]||Number(countMatch[1])):null;
+  if(requested>4||requested===0)warnings.push('배우는 1~4명까지 지원합니다. 범위를 제한했습니다.');
+  const noKnife=/(?:나이프|칼|knife)(?:를|을|이|은|는)?(?:없이|없|빼|제외)|(?:나이프|칼).*?(?:들지|사용하지)/.test(compact);
+  const knife=!noKnife&&/(나이프|칼|knife)/.test(text);
+  const noFight=/(싸우|싸움|격투|액션|fight)(?:지|는|을|를)?(?:않|말|없이|안)/.test(compact);
+  const fight=!noFight&&(/격투|싸움|싸우|싸운|주먹|난투|fight|combat/.test(text)||knife&&/액션|action|대결/.test(text));
+  const facing=/마주|대면|서로.*바라|face.to.face/.test(text)||fight;
+  let doc=basePrompt(noFight?text.replace(/격투|싸움|싸우|싸운|주먹|난투|fight|combat/g,'대기'):text);
+  if(fight)doc=fightScene(prompt,text);
+  let count=requested==null?doc.actors.length:Math.max(1,Math.min(4,requested));
+  if(fight&&requested==null){count=2;assumptions.push('상호 액션의 인원을 두 명으로 설정했습니다.');}
+  // Chase describes one runner plus another pursuer; preserve that explicit relationship.
+  if(/다른\s*사람|another/.test(text)&&/추격|뒤따라|쫓|chase/.test(text))count=2;
+  if(count!==doc.actors.length){const layout=genericScene(prompt,text);doc.actors=Array.from({length:count},(_,i)=>{
+    const a=structuredClone(layout.actors[0]);a.id='actor_'+String(i+1).padStart(2,'0');a.position=[(i-(count-1)/2)*2.1,0,0];
+    a.actions=[action(fight?'fight':'idle',0,doc.sequence.duration,[...a.position],[...a.position])];return a;
+  });}
+  if(facing){
+    if(count===2)doc.actors.forEach((a,i)=>{a.position=[i?1.05:-1.05,0,0];a.rotationY=i?-Math.PI/2:Math.PI/2;a.actions.forEach(x=>{x.from=[...a.position];x.to=[...a.position];x.rotationFrom=a.rotationY;x.rotationTo=a.rotationY;x.phaseOffset=i*Math.PI;x.targetId=doc.actors[1-i].id;});});
+    else warnings.push('대면 액션 배치는 두 배우 조합만 지원합니다. 다른 인원은 기본 배치입니다.');
+  }
+  if(knife){
+    let holders=doc.actors;
+    if(/첫\s*번째|배우\s*1|actor.?01|한\s*사람만/.test(text))holders=doc.actors.slice(0,1);
+    else if(/두\s*번째|배우\s*2|actor.?02/.test(text))holders=doc.actors.slice(1,2);
+    else assumptions.push('소품 소유자가 지정되지 않아 각 배우의 오른손에 나이프를 배치했습니다.');
+    doc.props=holders.map(a=>({id:'knife_'+a.id,type:'knife',assetId:'knife_blockout',actorId:a.id,hand:'right',position:[0,-.82,0],rotationY:0}));
+    if(fight)doc.actors.forEach((a,i)=>a.actions=[action('knife_action',0,doc.sequence.duration,[...a.position],[...a.position],{rotationFrom:a.rotationY,rotationTo:a.rotationY,phaseOffset:i*Math.PI})]);
+    assumptions.push('나이프 동작은 교대 팔 동작의 간단한 블로킹입니다. 정교한 무술 동작은 지원하지 않습니다.');
+  }
+  const cameraPart=(text.match(/카메라[^.。\n]*/)?.[0]||text).replace(/\s+/g,'');
+  const cameraText=cameraPart.replace(/(?:고정|static)(?:하지|하지는|은)?(?:않|말)[^,.]*?(?=오비트|회전|돌리|$)/g,'').replace(/(?:회전|오비트)(?:하지|하지는)?(?:않|말)[^,.]*?(?=고정|$)/g,'');
+  const movement=/고정|static|fixed/.test(cameraText)?'static':/오비트|orbit|카메라.*회전/.test(cameraText)?'orbit':/돌리아웃|dollyout/.test(cameraText)?'dolly_out':/돌리인|dollyin|푸시|다가/.test(cameraText)?'dolly_in':/핸드헬드/.test(cameraText)?'handheld_follow':/트래킹|tracking|follow/.test(cameraText)?'track_follow':null;
+  const varied=/다양한각도|여러각도|다양한앵글|여러앵글|dynamicangles/.test(compact);
+  if(movement||(fight&&!varied)){
+    const move=movement||'static',extent=Math.max(0,...doc.actors.map(a=>Math.abs(a.position[0]))),distance=Math.max(7,extent*2.5+3);
+    const start=[0,2.1,distance],end=move==='dolly_in'?[0,2.1,distance-2]:move==='dolly_out'?[0,2.1,distance+2]:[...start];
+    const extra={distance,targetActorId:doc.actors[0]?.id,secondaryActorId:doc.actors[1]?.id,handheldAmount:move==='handheld_follow'?.3:0};
+    doc.shots=[shot('shot_01','구성된 메인 샷','해석한 인원과 동작을 보여주는 샷',0,doc.sequence.duration,move,explicitLens(text)||35,start,end,[0,1.3,0],extra)];
+    if(!movement)assumptions.push('카메라 지시가 없어 배우들이 함께 보이는 고정 와이드 구도를 사용했습니다.');
+  }
+  for(const s of doc.shots){
+    if(s.camera.movement==='static'){s.camera.end=[...s.camera.start];s.camera.target=[0,1.3,0];s.camera.handheldAmount=0;delete s.camera.targetActorId;delete s.camera.secondaryActorId;}
+    if(s.camera.targetActorId&&!doc.actors.some(a=>a.id===s.camera.targetActorId))delete s.camera.targetActorId;
+    if(s.camera.secondaryActorId&&!doc.actors.some(a=>a.id===s.camera.secondaryActorId))delete s.camera.secondaryActorId;
+  }
+  if(/공중제비|춤|댄스|발차기|점프|날아|총|검술|슬로모션|슬로우|점프|dance|jump|flip/.test(text))warnings.push('요청한 세부 동작 중 일부는 지원하지 않습니다. 현재는 대기·걷기·달리기·격투·나이프 블로킹만 제공합니다.');
+  if(doc.actors.every(a=>a.actions.every(x=>x.type==='idle'))&&!/서있|서있다|서있어|서있고|대기|서로|마주|서다|stand|idle/.test(compact))warnings.push('인식한 동작이 없어 대기 상태로 구성했습니다. 동작을 구체적으로 지정해주세요.');
+  doc.sourcePrompt=prompt;
+  doc.interpretation={mode:'supported-rules',summary:doc.actors.length+'명 · '+(facing?'대면 배치 · ':'')+doc.actors.map(a=>a.actions[0].type).join(' / ')+' · 소품 '+doc.props.length+'개 · '+doc.shots.map(s=>s.camera.movement).join(' → '),warnings,assumptions};
+  return doc;
 }

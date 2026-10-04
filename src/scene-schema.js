@@ -1,4 +1,4 @@
-export const SCENE_VERSION = '1.3.5';
+export const SCENE_VERSION = '1.4.0';
 export const SUPPORTED_FPS = [24, 25, 30, 60];
 
 export const CAMERA_MOVES = [
@@ -6,7 +6,7 @@ export const CAMERA_MOVES = [
 ];
 export const CAMERA_ARCHETYPES = ['free','rear_three_quarter','side_track','rear_follow','between_push'];
 export const ENVIRONMENTS = ['road', 'urban_alley', 'warehouse', 'corridor', 'office', 'studio'];
-export const ACTOR_ACTIONS = ['idle', 'walk', 'run', 'chase', 'fight', 'turn', 'stop'];
+export const ACTOR_ACTIONS = ['idle', 'walk', 'run', 'chase', 'fight', 'knife_action', 'turn', 'stop'];
 
 const vec3Schema = { type: 'array', minItems: 3, maxItems: 3, items: { type: 'number' } };
 
@@ -14,7 +14,8 @@ export const SCENE_JSON_SCHEMA = {
   type: 'object', additionalProperties: false,
   required: ['version', 'sourcePrompt', 'sequence', 'scene', 'actors', 'props', 'lights', 'shots'],
   properties: {
-    version: { type: 'string', enum: [SCENE_VERSION] },
+    version: { type: 'string', enum: [SCENE_VERSION, '1.3.5'] },
+    interpretation: {type:'object',additionalProperties:false,required:['mode','summary','warnings','assumptions'],properties:{mode:{type:'string'},summary:{type:'string'},warnings:{type:'array',items:{type:'string'}},assumptions:{type:'array',items:{type:'string'}}}},
     sourcePrompt: { type: 'string' },
     sequence: {
       type: 'object', additionalProperties: false,
@@ -73,7 +74,7 @@ export const SCENE_JSON_SCHEMA = {
       items: {
         type: 'object', additionalProperties: false,
         required: ['id', 'type', 'assetId', 'position', 'rotationY'],
-        properties: { id:{type:'string'}, type:{type:'string'}, assetId:{type:'string'}, position:vec3Schema, rotationY:{type:'number'} },
+        properties: { id:{type:'string'}, type:{type:'string',enum:['car','knife']}, assetId:{type:'string'}, position:vec3Schema, rotationY:{type:'number'}, actorId:{type:'string'}, hand:{type:'string',enum:['left','right']} },
       },
     },
     lights: {
@@ -125,7 +126,7 @@ export function cloneSceneDocument(doc) { return JSON.parse(JSON.stringify(doc))
 export function validateSceneDocument(doc) {
   const errors = [];
   if (!doc || typeof doc !== 'object') errors.push('Scene Document가 객체가 아닙니다.');
-  if (doc?.version !== SCENE_VERSION) errors.push(`Scene version은 ${SCENE_VERSION}이어야 합니다.`);
+  if (![SCENE_VERSION,'1.3.5'].includes(doc?.version)) errors.push(`Scene version은 ${SCENE_VERSION}이어야 합니다.`);
   if (!ENVIRONMENTS.includes(doc?.scene?.environment?.type)) errors.push('지원하지 않는 환경입니다.');
   if (!Array.isArray(doc?.actors) || doc.actors.length < 1) errors.push('배우가 최소 1명 필요합니다.');
   if (!Array.isArray(doc?.shots) || doc.shots.length < 1) errors.push('샷이 최소 1개 필요합니다.');
@@ -138,6 +139,14 @@ export function validateSceneDocument(doc) {
       if (!(action?.start >= 0 && action?.end > action.start && action.end <= duration)) errors.push(`배우 ${i+1} 액션 ${j+1}: 시간 범위가 잘못되었습니다.`);
     }
   }
+  const ids=new Set((doc?.actors||[]).map(a=>a.id));
+  const vector=v=>Array.isArray(v)&&v.length===3&&v.every(Number.isFinite);
+  if(ids.size!==(doc?.actors||[]).length||(doc?.actors||[]).length>4)errors.push('배우 ID 또는 인원 범위가 잘못되었습니다.');
+  for(const p of doc?.props||[]){
+    if(!['car','knife'].includes(p.type)||!vector(p.position)||!Number.isFinite(p.rotationY))errors.push('소품 형태 또는 위치가 잘못되었습니다.');
+    if(p.type==='knife'&&(!ids.has(p.actorId)||!['left','right'].includes(p.hand)))errors.push('나이프 부착 배우/손 참조가 잘못되었습니다.');
+  }
+  for(const a of doc?.actors||[]){if(!vector(a.position)||!Number.isFinite(a.rotationY))errors.push('배우 위치가 잘못되었습니다.');for(const x of a.actions||[]){if(x.from&&!vector(x.from)||x.to&&!vector(x.to))errors.push('동작 위치가 잘못되었습니다.');}}
   let previousEnd = 0;
   for (const [i, shot] of (doc?.shots || []).entries()) {
     if (!CAMERA_MOVES.includes(shot?.camera?.movement)) errors.push(`샷 ${i+1}: 지원하지 않는 카메라 이동입니다.`);
