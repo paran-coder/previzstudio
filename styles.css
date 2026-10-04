@@ -50,3 +50,8 @@
 .prompt-entry{min-width:0;flex:1}.prompt-entry textarea{width:100%;box-sizing:border-box}.interpretation-details{font-size:11px;line-height:1.5;color:#b9c8d4;margin-bottom:6px}.interpretation-details summary{cursor:pointer;color:#d6f69a}#interpretation{white-space:pre-line;max-height:104px;overflow:auto;padding:5px 0}.프롬프트독{align-items:center}
 
 @media(min-width:931px){.앱{grid-template-rows:64px minmax(0,1fr) auto}}
+
+/* v1.5 structured input and continuous path editing */
+[hidden]{display:none!important}.structured-panel{background:#141d22}.structured-panel textarea{resize:vertical;min-height:64px}.structured-panel .필드{margin:9px 0}.path-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.path-grid label{display:grid;gap:5px;font-size:11px;color:var(--text-2)}.path-grid input{width:100%;min-width:0;padding:7px;border:1px solid var(--line);border-radius:4px;background:#0d1217}.blocking-summary{font-size:12px;color:var(--text-2);overflow-wrap:anywhere}.프롬프트독{min-height:68px;grid-template-columns:250px minmax(0,1fr) 145px}.프롬프트독 .프롬프트맥락 strong{font-size:11px}.선택입력:focus-visible,.path-grid input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.트리아이템 span{min-width:0;overflow-wrap:anywhere}
+@media(min-width:931px){.앱{grid-template-rows:64px minmax(0,1fr) 78px}.작업공간{grid-template-columns:190px minmax(360px,1fr) 304px}.중앙열{grid-template-rows:minmax(0,1fr) 224px}}
+@media(max-width:930px){.프롬프트독{grid-template-columns:minmax(0,1fr) 140px}.blocking-summary{font-size:11px}.상단바{gap:6px;flex-wrap:wrap}.상단액션{flex-wrap:wrap}.속성패널{max-height:700px}.중앙열{height:640px}.토스트{bottom:90px}}

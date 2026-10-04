@@ -33,18 +33,41 @@ export class CanvasSceneEngine {
   project(point,cam){const b=this.basis(cam),rel=sub(point,b.p),z=dot(rel,b.f);if(z<=.08)return null;const x=dot(rel,b.r),y=dot(rel,b.u);const f=(this.height*.5)/Math.tan((2*Math.atan(36/(2*cam.lens)))/2);return {x:this.width*.5+x/z*f,y:this.height*.5-y/z*f,z,scale:f/z};}
   line3(a,b,cam,color,width=1,dash=[]){const pa=this.project(fromA(a),cam),pb=this.project(fromA(b),cam);if(!pa||!pb)return;const c=this.ctx;c.save();c.strokeStyle=color;c.lineWidth=width;c.setLineDash(dash);c.beginPath();c.moveTo(pa.x,pa.y);c.lineTo(pb.x,pb.y);c.stroke();c.restore();}
   drawRoad(cam){const c=this.ctx;c.fillStyle='#070a0e';c.fillRect(0,0,this.width,this.height);for(let z=-30;z<=36;z+=2){this.line3([-5,0,z],[5,0,z],cam,'rgba(130,145,160,.08)');}for(let x=-5;x<=5;x+=1)this.line3([x,0,-30],[x,0,40],cam,'rgba(130,145,160,.08)');this.line3([-5,.01,-30],[-5,.01,40],cam,'#444e57',2);this.line3([5,.01,-30],[5,.01,40],cam,'#444e57',2);for(let z=-28;z<38;z+=5)this.line3([0,.02,z],[0,.02,z+2.2],cam,'rgba(220,214,190,.72)',3);for(const x of [-7.5,7.5])for(let z=-26;z<=32;z+=12){const base=this.project(vec(x,0,z),cam),top=this.project(vec(x,7,z),cam);if(base&&top){const w=clamp(base.scale*4,20,220);c.fillStyle=x<0?'#171c21':'#1b2026';c.fillRect(base.x-w/2,top.y,w,base.y-top.y);}}}
-  drawActor(actor,state,cam,index,showLabel=false){const p=state.position;const foot=this.project(vec(p[0],p[1],p[2]),cam),hip=this.project(vec(p[0],p[1]+1,p[2]),cam),head=this.project(vec(p[0],p[1]+2.28,p[2]),cam);if(!foot||!hip||!head)return;const c=this.ctx,scale=clamp(head.scale,.1,100),bodyW=clamp(scale*.55,7,55),col=index===0?'#d2d9df':'#9faab4',s=state.stride;c.save();c.strokeStyle=col;c.lineCap='round';c.lineWidth=clamp(bodyW*.22,3,14);c.beginPath();c.moveTo(hip.x,hip.y);c.lineTo(foot.x+Math.sin(s)*bodyW*.55,foot.y);c.stroke();c.beginPath();c.moveTo(hip.x,hip.y);c.lineTo(foot.x-Math.sin(s)*bodyW*.55,foot.y);c.stroke();c.lineWidth=bodyW;c.beginPath();c.moveTo(hip.x,hip.y);c.lineTo(head.x,head.y+bodyW*.65);c.stroke();c.lineWidth=clamp(bodyW*.18,3,12);const shoulderY=head.y+bodyW*.65,fight=['fight','knife_action'].includes(state.action),fw=state.fightSwing||0;const leftX=fight?head.x-bodyW*(.15+Math.max(0,-fw)*.6):head.x-bodyW*.6;const rightX=fight?head.x+bodyW*(.15+Math.max(0,fw)*.6):head.x+bodyW*.6;const armY=fight?shoulderY+bodyW*(.18+Math.abs(fw)*.15):shoulderY+Math.sin(-s)*bodyW*.55+bodyW*.45;c.beginPath();c.moveTo(head.x-bodyW*.25,shoulderY);c.lineTo(leftX,armY);c.stroke();c.beginPath();c.moveTo(head.x+bodyW*.25,shoulderY);c.lineTo(rightX,fight?shoulderY+bodyW*(.18+Math.abs(fw)*.15):shoulderY+Math.sin(s)*bodyW*.55+bodyW*.45);c.stroke();c.beginPath();c.arc(head.x,head.y,clamp(bodyW*.45,5,28),0,Math.PI*2);c.fillStyle=col;c.fill();if(showLabel){c.font='10px ui-monospace,monospace';c.fillStyle=index===0?'#7dd2ff':'#ffbd7d';c.fillText(actor.id.toUpperCase(),head.x-bodyW,head.y-bodyW*.8);}c.restore();}
+  drawActor(actor,state,cam,index,showLabel=false){const p=state.position;const foot=this.project(vec(p[0],p[1],p[2]),cam),hip=this.project(vec(p[0],p[1]+1,p[2]),cam),head=this.project(vec(p[0],p[1]+2.28,p[2]),cam);if(!foot||!hip||!head)return;const c=this.ctx,scale=clamp(head.scale,.1,100),bodyW=clamp(scale*.55,7,55),col=['#7eb9d6','#e5b67b','#a5c99c','#c2a0d5'][index%4],s=state.stride;c.save();c.strokeStyle=col;c.lineCap='round';c.lineWidth=clamp(bodyW*.22,3,14);c.beginPath();c.moveTo(hip.x,hip.y);c.lineTo(foot.x+Math.sin(s)*bodyW*.55,foot.y);c.stroke();c.beginPath();c.moveTo(hip.x,hip.y);c.lineTo(foot.x-Math.sin(s)*bodyW*.55,foot.y);c.stroke();c.lineWidth=bodyW;c.beginPath();c.moveTo(hip.x,hip.y);c.lineTo(head.x,head.y+bodyW*.65);c.stroke();c.lineWidth=clamp(bodyW*.18,3,12);const shoulderY=head.y+bodyW*.65,fight=['fight','knife_action'].includes(state.action),fw=state.fightSwing||0;const leftX=fight?head.x-bodyW*(.15+Math.max(0,-fw)*.6):head.x-bodyW*.6;const rightX=fight?head.x+bodyW*(.15+Math.max(0,fw)*.6):head.x+bodyW*.6;const armY=fight?shoulderY+bodyW*(.18+Math.abs(fw)*.15):shoulderY+Math.sin(-s)*bodyW*.55+bodyW*.45;c.beginPath();c.moveTo(head.x-bodyW*.25,shoulderY);c.lineTo(leftX,armY);c.stroke();c.beginPath();c.moveTo(head.x+bodyW*.25,shoulderY);c.lineTo(rightX,fight?shoulderY+bodyW*(.18+Math.abs(fw)*.15):shoulderY+Math.sin(s)*bodyW*.55+bodyW*.45);c.stroke();c.beginPath();c.arc(head.x,head.y,clamp(bodyW*.45,5,28),0,Math.PI*2);c.fillStyle=col;c.fill();if(showLabel){c.font='10px ui-monospace,monospace';c.fillStyle=index===0?'#7dd2ff':'#ffbd7d';c.fillText(String(actor.role||actor.name||actor.id).slice(0,24),head.x-bodyW,head.y-bodyW*.8);}c.restore();}
+  drawEnvironment(cam){
+    const type=this.document.scene.environment.type;if(!['storefront','building','studio'].includes(type)){this.drawRoad(cam);return;}
+    const c=this.ctx;c.fillStyle='#b8c4ca';c.fillRect(0,0,this.width,this.height);
+    for(let n=-14;n<=14;n+=2){this.line3([-14,0,n],[14,0,n],cam,'#99a5ac');this.line3([n,0,-14],[n,0,14],cam,'#99a5ac');}
+    if(type==='studio')return;
+    const panel=(x,y,w,h,color,z=-5)=>{const pts=[[x-w/2,y-h/2,z],[x+w/2,y-h/2,z],[x+w/2,y+h/2,z],[x-w/2,y+h/2,z]].map(a=>this.project(fromA(a),cam));if(pts.some(p=>!p))return;c.fillStyle=color;c.beginPath();pts.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y));c.closePath();c.fill();};
+    panel(0,type==='building'?4:2.5,14,type==='building'?8:5,'#c6c3ba');
+    panel(0,1.6,2.8,3.2,'#314b58',-4.8);
+    panel(.95,1.35,.1,.45,'#dadfe2',-4.7);
+    if(type==='storefront'){for(const x of [-4.15,4.15])panel(x,1.65,3.8,2,'#6e95a2',-4.8);panel(0,3.7,12,.3,'#547d85',-4.7);panel(0,4.4,6,.7,'#354b53',-4.8);}
+    else{for(const x of [-5,-2.5,0,2.5,5])panel(x,6.4,1.5,1.7,'#67818f',-4.8);panel(0,3.5,4,.22,'#707c86',-4.7);}
+  }
+  drawUmbrellas(actor,state,cam){
+    for(const prop of this.document.props.filter(p=>p.type==='umbrella'&&p.actorId===actor.id)){
+      const side=prop.hand==='left'?-1:1,offset=prop.position||[0,-.82,0],angle=state.rotationY;
+      const x=side*.47+offset[0],z=-Math.sin(.65)*offset[1]+offset[2];
+      const base=[state.position[0]+x*Math.cos(angle)+z*Math.sin(angle),state.position[1]+1.78+offset[1]*Math.cos(.65)+(state.bob||0),state.position[2]-x*Math.sin(angle)+z*Math.cos(angle)];
+      this.line3(base,[base[0],base[1]+1.85,base[2]],cam,'#424e58',2);
+      const pts=[];for(let n=0;n<=12;n++){const a=n*Math.PI*2/12;pts.push(this.project(vec(base[0]+Math.cos(a)*1.05,base[1]+1.5,base[2]+Math.sin(a)*1.05),cam));}
+      const top=this.project(vec(base[0],base[1]+1.9,base[2]),cam);if(!top||pts.some(p=>!p))continue;
+      const c=this.ctx;for(let n=0;n<12;n++){c.fillStyle=n%2?'#527f99':'#648fa7';c.beginPath();c.moveTo(top.x,top.y);c.lineTo(pts[n].x,pts[n].y);c.lineTo(pts[n+1].x,pts[n+1].y);c.closePath();c.fill();}
+    }
+  }
   drawGuides(cam){if(this.viewMode!=='edit')return;for(const actor of this.document.actors){for(const a of actor.actions){if(a.from&&a.to)this.line3(a.from,a.to,cam,actor.id==='actor_01'?'#4cb8e8':'#8097a8',2,[7,5]);}}for(const shot of this.document.shots){let prev=null;for(let i=0;i<=16;i++){const t=shot.start+(shot.end-shot.start)*(i/16),cs=evaluateCameraAtTime(this.document,t),p=cs.position;if(prev)this.line3(prev,p,cam,'#9a7bff',1.5,[5,4]);prev=p;}}}
   drawCanonicalOutput(){
     if(!this.document)return;
     const cam={position:this.cameraState.position,target:this.cameraState.target,lens:this.cameraState.lens};
-    this.drawRoad(cam);
-    this.actorStates.forEach((x,i)=>this.drawActor(x.actor,x.state,cam,i,false));
+    this.drawEnvironment(cam);
+    this.actorStates.forEach((x,i)=>{this.drawActor(x.actor,x.state,cam,i,false);this.drawUmbrellas(x.actor,x.state,cam);});
     const c=this.ctx,g=c.createLinearGradient(0,0,0,this.height);g.addColorStop(0,'rgba(6,10,15,.18)');g.addColorStop(1,'rgba(0,0,0,.36)');c.fillStyle=g;c.fillRect(0,0,this.width,this.height);
   }
   drawEditFrame(){
     if(!this.document)return;
-    const cam=this.getDirectorCamera();this.drawRoad(cam);this.drawGuides(cam);this.actorStates.forEach((x,i)=>this.drawActor(x.actor,x.state,cam,i,true));
+    const cam=this.getDirectorCamera();this.drawEnvironment(cam);this.drawGuides(cam);this.actorStates.forEach((x,i)=>{this.drawActor(x.actor,x.state,cam,i,true);this.drawUmbrellas(x.actor,x.state,cam);});
     const c=this.ctx;c.strokeStyle='rgba(220,230,240,.22)';c.strokeRect(this.width*.07,this.height*.11,this.width*.86,this.height*.78);
   }
   renderCanonicalFrame(time){

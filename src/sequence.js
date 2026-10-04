@@ -38,14 +38,15 @@ export function evaluateActorAtTime(doc, actorOrId, time) {
     const r0 = Number.isFinite(action.rotationFrom) ? action.rotationFrom : state.rotationY;
     const r1 = Number.isFinite(action.rotationTo) ? action.rotationTo : r0;
     if (t < action.start) break;
-    if (t > action.end) {
+    if (t >= action.end && action !== actions.at(-1)) {
       state = { ...state, position:[...to], rotationY:r1, action:action.type, stride:0, bob:0, lean:0 };
       continue;
     }
     const p = clamp((t-action.start)/Math.max(.001,action.end-action.start),0,1);
     const moving = ['walk','run','chase'].includes(action.type);
     const fighting = ['fight','knife_action'].includes(action.type);
-    const speed = action.type === 'walk' ? 1.55 : moving ? 3.4 : fighting ? (action.type==='knife_action'?.65:1.35) : 0;
+    let speed = action.type === 'walk' ? 1.55 : moving ? 3.4 : fighting ? (action.type==='knife_action'?.65:1.35) : 0;
+    if(moving && doc.interpretation?.mode==='structured')speed=lengthXZ(subVec3(to,from))/Math.max(.001,action.end-action.start)/(action.type==='walk'?1.25:1.9);
     const cycle = (t-action.start) * speed * Math.PI * 2 + (action.phaseOffset||0);
     const fightWave=fighting?Math.sin(cycle):0;
     state = {
@@ -289,3 +290,5 @@ export function rotateActorPath(doc, actorId, rotationY) {
     a.rotationFrom=oldFrom+delta;a.rotationTo=oldTo+delta;
   }
 }
+
+

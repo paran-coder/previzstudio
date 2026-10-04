@@ -1,3 +1,4 @@
+import { createBlockingScene, editActionPath } from './2026-10-04-blocking-plan.js';
 import { directPromptFallback } from './director-fallback.js';
 import { cloneSceneDocument, validateSceneDocument, SUPPORTED_FPS } from './scene-schema.js';
 import { activeShotAtTime, buildTimelineRows, cameraEditSnapshot, ensureManualCamera, resetManualCamera, translateActorPath, rotateActorPath } from './sequence.js';
@@ -23,9 +24,10 @@ const movementLabels={static:'고정',dolly_in:'돌리 인',dolly_out:'돌리 �
 const movementShort={static:'STATIC',dolly_in:'DOLLY IN',dolly_out:'DOLLY OUT',track_follow:'TRACK FOLLOW',track_between:'TRACK BETWEEN',orbit:'ORBIT',handheld_follow:'HANDHELD FOLLOW'};
 const archetypeLabels={free:'FREE CAMERA',rear_three_quarter:'REAR 3/4 WIDE',side_track:'SIDE TRACK',rear_follow:'REAR FOLLOW',between_push:'BETWEEN PUSH'};
 const actionLabels={idle:'대기',walk:'걷기',run:'달리기',chase:'추격',fight:'격투',knife_action:'나이프 블로킹',turn:'회전',stop:'멈춤'};
-const envLabels={road:'도로',urban_alley:'도시 골목',warehouse:'창고',corridor:'복도',office:'사무실',studio:'스튜디오'};
-let sceneDoc=directPromptFallback(els.prompt.value),engine=null,currentShotIndex=0,toastTimer=0,rendering=false,currentView='edit',editTarget='camera',cameraEditKey='start',transformMode='translate';
+const envLabels={storefront:'가게 앞',building:'건물 앞',road:'도로',urban_alley:'도시 골목',warehouse:'창고',corridor:'복도',office:'사무실',studio:'스튜디오'};
+let sceneDoc=createBlockingScene({}),engine=null,currentShotIndex=0,toastTimer=0,rendering=false,currentView='edit',editTarget='camera',cameraEditKey='start',transformMode='translate';
 
+const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function formatTime(sec){const s=Math.max(0,sec),m=Math.floor(s/60),whole=Math.floor(s%60),tenth=Math.floor((s-Math.floor(s))*10);return `${String(m).padStart(2,'0')}:${String(whole).padStart(2,'0')}.${tenth}`;}
 function showToast(msg,ms=2200){els.toast.textContent=msg;els.toast.classList.add('보임');clearTimeout(toastTimer);toastTimer=setTimeout(()=>els.toast.classList.remove('보임'),ms);}
 function downloadBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2500);}
@@ -38,7 +40,8 @@ function syncSequenceUI(){
   if(els.renderDuration)els.renderDuration.textContent=`${seq.duration.toFixed(1)}초`;
   if(els.renderFrameCount)els.renderFrameCount.textContent=String(totalFrames);
   if(els.renderResolution)els.renderResolution.textContent=`${seq.width} × ${seq.height}`;
-  if(els.timeline){els.timeline.max=String(seq.duration);els.timeline.step=String(1/fps);}
+  if(els.timeline){els.timeline.max=String(seq.duration);els.timeline.step=String(1/fps);els.timeline.setAttribute('aria-label',`${seq.duration}초 마스터 타임라인`);}
+  $$('#timeline-ruler span').forEach((el,i)=>{const value=Number((seq.duration*i/4).toFixed(2));el.textContent=String(value)+(i===4?'s':'');});
 }
 function setProjectFps(value){
   const fps=Number(value);
@@ -53,7 +56,7 @@ function setProjectFps(value){
 function showInterpretation(doc){
   const box=document.querySelector('#interpretation');if(!box)return;
   const info=doc.interpretation;
-  box.textContent=info?['구성 결과: '+info.summary,...info.assumptions.map(x=>'기본값: '+x),...info.warnings.map(x=>'미지원/확인: '+x),'지원 구문 기반 구성 · 외부 AI 연결 없음'].join('\n'):'기존 장면';
+  box.textContent=info?['구성 결과: '+info.summary,...info.assumptions.map(x=>'기본값: '+x),...info.warnings.map(x=>'미지원/확인: '+x),doc.interpretation.mode==='structured'?'구조화 선택으로 구성 · 분위기는 보조 프롬프트에 포함':'지원 구문 기반 구성 · 외부 AI 연결 없음'].join('\n'):'기존 장면';
   if(engine instanceof CanvasSceneEngine && doc.props.some(p=>p.type==='knife'))box.textContent+='\nCanvas 대체 모드에서는 나이프 소품 표시를 지원하지 않습니다. WebGL 브라우저를 사용해주세요.';
 }
 async function initEngine(){
@@ -66,15 +69,15 @@ async function initEngine(){
 function shotIndexAtTime(time){const shot=activeShotAtTime(sceneDoc,time);return Math.max(0,sceneDoc.shots.findIndex(s=>s.id===shot.id));}
 function renderSceneTree(){
   const env=sceneDoc.scene.environment;
-  const actors=sceneDoc.actors.map((a,i)=>`<div class="트리아이템"><span class="트리아이콘">${i+1}</span><span><b>${a.id.toUpperCase()}</b><small>${a.actions.map(x=>actionLabels[x.type]||x.type).join(' → ')}</small></span></div>`).join('');
-  const shots=sceneDoc.shots.map((s,i)=>`<button class="트리아이템" data-jump-shot="${i}"><span class="트리아이콘">⌁</span><span>${String(i+1).padStart(2,'0')} · ${s.title}</span></button>`).join('');
-  els.sceneTree.innerHTML=`<div class="트리그룹"><div class="트리제목">환경</div><div class="트리아이템"><span class="트리아이콘">◇</span><span>${envLabels[env.type]||env.type} · ${env.time==='night'?'밤':'낮'}</span></div></div><div class="트리그룹"><div class="트리제목">배우</div>${actors}</div><div class="트리그룹"><div class="트리제목">카메라 / 샷</div>${shots}</div>`;
+  const actors=sceneDoc.actors.map((a,i)=>`<div class="트리아이템"><span class="트리아이콘">${i+1}</span><span><b>${escapeHtml(a.role)} · ${escapeHtml(a.id.toUpperCase())}</b><small>${escapeHtml(a.actions.map(x=>actionLabels[x.type]||x.type).join(' → '))}</small></span></div>`).join('');
+  const shots=sceneDoc.shots.map((s,i)=>`<button class="트리아이템" data-jump-shot="${i}"><span class="트리아이콘">⌁</span><span>${String(i+1).padStart(2,'0')} · ${escapeHtml(s.title)}</span></button>`).join('');
+  els.sceneTree.innerHTML=`<div class="트리그룹"><div class="트리제목">환경</div><div class="트리아이템"><span class="트리아이콘">◇</span><span>${escapeHtml(envLabels[env.type]||env.type)} · ${env.time==='night'?'밤':'낮'}</span></div></div><div class="트리그룹"><div class="트리제목">배우</div>${actors}</div><div class="트리그룹"><div class="트리제목">카메라 / 샷</div>${shots}</div>`;
   $$('[data-jump-shot]').forEach(b=>b.addEventListener('click',()=>engine.selectShot(Number(b.dataset.jumpShot))));
 }
 
 function renderTracks(){
   const rows=buildTimelineRows(sceneDoc),d=sceneDoc.sequence.duration;
-  const clip=(item,extra='',label=item.label)=>{const left=item.start/d*100,width=(item.end-item.start)/d*100;return `<button class="타임클립 ${extra}" data-jump="${item.start}" style="left:${left}%;width:${width}%"><span>${label}</span></button>`};
+  const clip=(item,extra='',label=item.label)=>{const left=item.start/d*100,width=(item.end-item.start)/d*100;return `<button class="타임클립 ${escapeHtml(extra)}" data-jump="${item.start}" style="left:${left}%;width:${width}%"><span>${escapeHtml(label)}</span></button>`};
   const actorRows=rows.actors.map((row,i)=>`<div class="트랙행"><div class="트랙라벨">배우 ${i+1}</div><div class="트랙레인">${row.clips.map(x=>clip(x,`액션 ${x.type}`,`${actionLabels[x.type]||x.type} · ${x.type.toUpperCase()}`)).join('')}</div></div>`).join('');
   els.tracks.innerHTML=`<div class="트랙행"><div class="트랙라벨">샷</div><div class="트랙레인">${rows.shots.map((x,i)=>clip(x,`샷클립 shot-${i}`)).join('')}</div></div>${actorRows}<div class="트랙행"><div class="트랙라벨">카메라</div><div class="트랙레인">${rows.camera.map(x=>clip(x,'카메라클립',`${movementLabels[x.type]||x.type} · ${movementShort[x.type]||x.type.toUpperCase()}`)).join('')}</div></div>`;
   $$('[data-jump]').forEach(b=>b.addEventListener('click',()=>engine.seek(Number(b.dataset.jump)+.001)));
@@ -85,8 +88,8 @@ function setNum(el,v,digits=2){if(el)el.value=Number(v||0).toFixed(digits).repla
 function populateTransformTargets(){
   if(!els.editTarget)return;
   const current=editTarget;
-  els.editTarget.innerHTML='<option value="camera">카메라</option>'+sceneDoc.actors.map((a,i)=>`<option value="${a.id}">배우 ${i+1} · ${a.id.toUpperCase()}</option>`).join('');
-  els.targetActor.innerHTML=sceneDoc.actors.map((a,i)=>`<option value="${a.id}">배우 ${i+1}</option>`).join('');
+  els.editTarget.innerHTML='<option value="camera">카메라</option>'+sceneDoc.actors.map((a,i)=>`<option value="${escapeHtml(a.id)}">배우 ${i+1} · ${escapeHtml(a.role)} · ${escapeHtml(a.id.toUpperCase())}</option>`).join('');
+  els.targetActor.innerHTML=sceneDoc.actors.map((a,i)=>`<option value="${escapeHtml(a.id)}">배우 ${i+1}</option>`).join('');
   editTarget=current==='camera'||sceneDoc.actors.some(a=>a.id===current)?current:'camera';els.editTarget.value=editTarget;
 }
 function syncTransformUI(){
@@ -111,7 +114,7 @@ function syncTransformUI(){
   }
 }
 function afterDocumentEdit(message='수정했습니다.'){
-  engine.document=sceneDoc;engine.refreshEditing?.();els.json.textContent=JSON.stringify(sceneDoc,null,2);syncSequenceUI();renderSceneTree();renderTracks();syncShotUI(engine.time);syncTransformUI();if(message)showToast(message,1400);
+  engine.document=sceneDoc;engine.refreshEditing?.();els.json.textContent=JSON.stringify(sceneDoc,null,2);syncSequenceUI();renderSceneTree();renderTracks();syncShotUI(engine.time);syncTransformUI();populateActionEditor();if(message)showToast(message,1400);
 }
 function editCameraPosition(position){
   const m=ensureManualCamera(sceneDoc,currentShotIndex),key=cameraEditKey==='end'?'end':'start';m[key]=position.map(Number);afterDocumentEdit('카메라 위치를 수정했습니다.');
@@ -128,7 +131,7 @@ function editActorPosition(){
   const actor=sceneDoc.actors.find(a=>a.id===editTarget);if(!actor)return;const next=[num(els.actorX,actor.position[0]),num(els.actorY,actor.position[1]),num(els.actorZ,actor.position[2])];
   translateActorPath(sceneDoc,actor.id,[next[0]-actor.position[0],next[1]-actor.position[1],next[2]-actor.position[2]]);afterDocumentEdit('배우 위치를 수정했습니다.');
 }
-function syncFromEngineEdit(){sceneDoc=engine.document;els.json.textContent=JSON.stringify(sceneDoc,null,2);syncShotUI(engine.time);syncTransformUI();}
+function syncFromEngineEdit(){sceneDoc=engine.document;els.json.textContent=JSON.stringify(sceneDoc,null,2);syncShotUI(engine.time);syncTransformUI();syncActionInputs();}
 
 function syncShotOverlay(shot,time){
   const idx=currentShotIndex+1,elapsed=Math.max(0,time-shot.start),show=currentView==='preview'&&elapsed<1.25;
@@ -166,17 +169,63 @@ async function loadScene(doc){
   const check=validateSceneDocument(doc);if(!check.ok){showToast(check.errors[0]);throw new Error(check.errors.join(' '));}
   sceneDoc=doc;await engine.loadDocument(sceneDoc);engine.onTime=(time,playing)=>updateTimeUI(time,playing);engine.onDocumentEdit=syncFromEngineEdit;
   els.continuity.textContent=sceneDoc.scene.continuityKey;els.json.textContent=JSON.stringify(sceneDoc,null,2);showInterpretation(sceneDoc);
-  syncSequenceUI();populateTransformTargets();renderSceneTree();renderTracks();updateTimeUI(0,false);setView(currentView);syncTransformUI();
+  syncSequenceUI();populateTransformTargets();populateActionEditor();renderSceneTree();renderTracks();updateTimeUI(0,false);setView(currentView);syncTransformUI();
 }
 
 function selectedShot(){return sceneDoc.shots[currentShotIndex];}
-function referenceManifest(){return {format:'previz-reference-pack',version:APP_VERSION,build:BUILD_INFO,sourcePrompt:sceneDoc.sourcePrompt,sequence:sceneDoc.sequence,continuityKey:sceneDoc.scene.continuityKey,environment:sceneDoc.scene.environment,actors:sceneDoc.actors.map(a=>({id:a.id,role:a.role,actions:a.actions})),shots:sceneDoc.shots.map((s,i)=>({id:s.id,title:s.title,start:s.start,end:s.end,lens:s.camera.lens,movement:s.camera.movement,archetype:s.camera.archetype||'free',manualCamera:s.camera.manual||null,referenceFrames:[['start',s.start],['mid',(s.start+s.end)/2],['end',Math.max(s.start,s.end-1/sceneDoc.sequence.fps)]].map(([role,time])=>({role,time,suggestedFilename:`previz-shot${String(i+1).padStart(2,'0')}-${role}.png`}))})),referenceIntent:'카메라 구도, 인물 동선, 움직임과 샷 연속성을 AI 영상 생성에 전달한다.'};}
+function referenceManifest(){return {format:'previz-reference-pack',version:APP_VERSION,build:BUILD_INFO,sourcePrompt:sceneDoc.sourcePrompt,supplementaryPrompt:sceneDoc.supplementaryPrompt||'',props:sceneDoc.props,sequence:sceneDoc.sequence,continuityKey:sceneDoc.scene.continuityKey,environment:sceneDoc.scene.environment,actors:sceneDoc.actors.map(a=>({id:a.id,role:a.role,actions:a.actions})),shots:sceneDoc.shots.map((s,i)=>({id:s.id,title:s.title,start:s.start,end:s.end,lens:s.camera.lens,movement:s.camera.movement,archetype:s.camera.archetype||'free',manualCamera:s.camera.manual||null,referenceFrames:[['start',s.start],['mid',(s.start+s.end)/2],['end',Math.max(s.start,s.end-1/sceneDoc.sequence.fps)]].map(([role,time])=>({role,time,suggestedFilename:`previz-shot${String(i+1).padStart(2,'0')}-${role}.png`}))})),referenceIntent:'카메라 구도, 인물 동선, 움직임과 샷 연속성을 AI 영상 생성에 전달한다.'};}
 function exportSceneSlug(){const actions=sceneDoc.actors.flatMap(a=>a.actions||[]).map(a=>a.type);if(actions.includes('fight'))return 'fight';if(actions.includes('chase'))return 'chase';return sceneDoc.scene.environment.type||'scene';}
 function exportBaseName(){return `previz-${exportSceneSlug()}-${Math.round(sceneDoc.sequence.duration)}s-v${APP_VERSION}`;}
 async function captureRole(role){const shot=selectedShot(),t=role==='start'?shot.start:role==='mid'?(shot.start+shot.end)/2:Math.max(shot.start,shot.end-1/sceneDoc.sequence.fps);const blob=await engine.captureAtTime(t);if(!blob)return showToast('프레임 캡처 실패');downloadBlob(blob,`previz-shot${String(currentShotIndex+1).padStart(2,'0')}-${role}.png`);showToast(`${role} PNG를 저장했습니다.`);}
 
-els.generate.addEventListener('click',async()=>{if(rendering)return;const prompt=els.prompt.value.trim();if(!prompt)return;const projectFps=sceneDoc.sequence.fps;els.generate.disabled=true;els.generate.querySelector('span').textContent='블로킹 중…';try{const next=directPromptFallback(prompt);next.sequence.fps=projectFps;await loadScene(next);showToast(next.interpretation?.warnings.length?'일부 요청을 반영하지 못했습니다. 구성 결과를 확인해주세요.':'장면을 구성했습니다. 적용한 기본값을 확인해주세요.');}catch(error){showToast('장면 구성 실패: '+error.message);}finally{els.generate.disabled=false;els.generate.querySelector('span').textContent='장면 만들기';}});
-els.prompt.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='Enter')els.generate.click();});
+
+function syncBlockingActors(){
+  const count=Number($('#blocking-count').value),old=$$('[data-blocking-role]').map(x=>x.value);
+  $('#blocking-roles').innerHTML=Array.from({length:count},(_,i)=>`<label class="필드 세로필드">배우 ${i+1} 역할<input id="blocking-role-${i}" data-blocking-role="${i}" class="선택입력" maxlength="40" value="${escapeHtml(old[i]??['남자','여자','배우 3','배우 4'][i])}"></label>`).join('');
+  refreshBlockingActorOptions();
+}
+function refreshBlockingActorOptions(){
+  const roles=$$('[data-blocking-role]').map((x,i)=>x.value.trim()||`배우 ${i+1}`);
+  for(const [id,fallback] of [['blocking-mover',1],['blocking-target',0],['blocking-holder',0]]){
+    const el=$('#'+id),previous=el.value===''?fallback:Number(el.value);
+    el.innerHTML=roles.map((r,i)=>`<option value="${i}">${i+1} · ${escapeHtml(r)}</option>`).join('');el.value=String(Math.min(previous,roles.length-1));
+  }
+  const motion=$('#blocking-motion');motion.querySelector('[value="approach"]').disabled=roles.length<2;
+  if(roles.length<2&&motion.value==='approach')motion.value='walk';
+  $('#blocking-target').disabled=motion.value!=='approach';$('#blocking-mover').disabled=motion.value==='idle';$('#blocking-holder').disabled=$('#blocking-prop').value==='none';
+}
+function readBlockingInput(){
+  const duration=Number($('#blocking-duration').value);
+  if(!Number.isFinite(duration)||duration<4||duration>60)throw new Error('영상 길이는 4~60초로 입력해주세요.');
+  return {setting:$('#blocking-setting').value,duration,roles:$$('[data-blocking-role]').map((x,i)=>x.value.trim()||`배우 ${i+1}`),mover:Number($('#blocking-mover').value),target:Number($('#blocking-target').value),motion:$('#blocking-motion').value,prop:$('#blocking-prop').value,holder:Number($('#blocking-holder').value),camera:$('#blocking-camera').value,atmosphere:$('#blocking-atmosphere').value.trim(),startTime:Math.min(1,duration*.15),arrivalTime:duration*.75};
+}
+function populateActionEditor(){
+  const actorSelect=$('#action-actor'),old=actorSelect.value;
+  actorSelect.innerHTML=sceneDoc.actors.map(a=>`<option value="${escapeHtml(a.id)}">${escapeHtml(a.role)} · ${escapeHtml(a.id)}</option>`).join('');
+  if(sceneDoc.actors.some(a=>a.id===old))actorSelect.value=old;
+  populateActionSegments();
+}
+function populateActionSegments(){
+  const actor=sceneDoc.actors.find(a=>a.id===$('#action-actor').value);if(!actor)return;
+  const el=$('#action-index'),old=el.value;
+  el.innerHTML=actor.actions.map((a,i)=>`<option value="${i}">${i+1} · ${escapeHtml(actionLabels[a.type]||a.type)} (${a.start}–${a.end}초)</option>`).join('');
+  el.value=old!==''&&actor.actions[Number(old)]?old:'0';syncActionInputs();
+}
+function syncActionInputs(){
+  const actor=sceneDoc.actors.find(a=>a.id===$('#action-actor').value),a=actor?.actions[Number($('#action-index').value)];if(!a)return;
+  const from=a.from||actor.position,to=a.to||from;
+  for(const [id,v] of [['action-start',a.start],['action-end',a.end],['action-from-x',from[0]],['action-from-z',from[2]],['action-to-x',to[0]],['action-to-z',to[2]]])setNum($('#'+id),v);
+}
+$('#blocking-count').addEventListener('change',syncBlockingActors);
+$('#blocking-roles').addEventListener('input',refreshBlockingActorOptions);
+$('#blocking-motion').addEventListener('change',refreshBlockingActorOptions);$('#blocking-prop').addEventListener('change',refreshBlockingActorOptions);
+$('#input-mode').addEventListener('change',()=>{const structured=$('#input-mode').value==='structured';$('#structured-fields').hidden=!structured;$('#legacy-fields').hidden=structured;$('#blocking-summary').textContent=structured?'선택을 조정하고 장면 만들기를 누르세요.':'기존 규칙 기반 문장 모드 · 지원 구문만 구성';});
+$('#action-actor').addEventListener('change',populateActionSegments);$('#action-index').addEventListener('change',syncActionInputs);
+$('#apply-action').addEventListener('click',async()=>{if(rendering)return;try{const read=id=>{const el=$('#'+id);if(el.value.trim()===''||!Number.isFinite(Number(el.value)))throw new Error('동선 좌표와 시간을 숫자로 입력해주세요.');return Number(el.value);};const next=editActionPath(sceneDoc,$('#action-actor').value,Number($('#action-index').value),{start:read('action-start'),end:read('action-end'),from:[read('action-from-x'),0,read('action-from-z')],to:[read('action-to-x'),0,read('action-to-z')]});const time=engine.time;await loadScene(next);engine.seek(time);showToast('동선과 인접 구간 연결을 수정했습니다.');}catch(error){showToast(error.message,4500);}});
+$('#export-prompt').addEventListener('click',()=>{const text=[`Previz Studio v${APP_VERSION} · 영상 생성 보조 프롬프트`,sceneDoc.sourcePrompt,`분위기: ${sceneDoc.supplementaryPrompt||'별도 지정 없음'}`,'',`공간: ${envLabels[sceneDoc.scene.environment.type]||sceneDoc.scene.environment.type}`,`길이: ${sceneDoc.sequence.duration}초`,...sceneDoc.actors.map(a=>`${a.role} (${a.id}): ${a.actions.map(x=>`${actionLabels[x.type]||x.type} ${x.start}~${x.end}초, ${JSON.stringify(x.from||a.position)} → ${JSON.stringify(x.to||x.from||a.position)}`).join('; ')}`),...sceneDoc.props.map(p=>`소품: ${p.type} · ${sceneDoc.actors.find(a=>a.id===p.actorId)?.role||"공간 소품"}`),...sceneDoc.shots.map(s=>`카메라: ${movementLabels[s.camera.movement]||s.camera.movement}, ${s.camera.lens}mm`),'','첨부 레퍼런스의 인물 동선, 구도, 시간과 연결을 유지하세요.'].join('\n');downloadBlob(new Blob([text],{type:'text/plain;charset=utf-8'}),`2026-10-04-previz-studio-v${APP_VERSION}-supplemental-prompt.txt`);});
+syncBlockingActors();
+els.generate.addEventListener('click',async()=>{if(rendering)return;const projectFps=sceneDoc.sequence.fps;els.generate.disabled=true;els.generate.querySelector('span').textContent='블로킹 중…';try{if($('#input-mode').value!=='structured'&&!els.prompt.value.trim())throw Error('장면 설명을 입력해주세요.');const next=$('#input-mode').value==='structured'?createBlockingScene(readBlockingInput()):directPromptFallback(els.prompt.value.trim());next.sequence.fps=projectFps;await loadScene(next);$('#blocking-summary').textContent=`${envLabels[next.scene.environment.type]} · 배우 ${next.actors.length}명 · ${next.sequence.duration}초 · 구성 완료`;showToast(next.interpretation?.warnings.length?'일부 요청을 반영하지 못했습니다. 구성 결과를 확인해주세요.':'장면을 구성했습니다.');}catch(error){showToast('장면 구성 실패: '+error.message,4500);}finally{els.generate.disabled=false;els.generate.querySelector('span').textContent='장면 만들기';}});
+document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='Enter'){e.preventDefault();els.generate.click();}});
 els.play.addEventListener('click',()=>{if(engine.time>=sceneDoc.sequence.duration-.001)engine.seek(0);engine.setPlaying(!engine.playing);updateTimeUI(engine.time,engine.playing);});
 els.reset.addEventListener('click',()=>engine.reset());
 els.timeline.addEventListener('input',()=>engine.seek(Number(els.timeline.value)));
@@ -211,3 +260,5 @@ els.renderVideo.addEventListener('click',async()=>{
 engine=await initEngine();await loadScene(sceneDoc);window.__PREVIZ__={getScene:()=>sceneDoc,getEngine:()=>engine,loadPrompt:async p=>{els.prompt.value=p;const next=directPromptFallback(p);next.sequence.fps=sceneDoc.sequence.fps;await loadScene(next);},setView,setFps:setProjectFps,exportSequenceVideo:()=>exportSequenceVideo(engine,sceneDoc)};els.build.textContent=`APP v${APP_VERSION} · ${BUILD_ID}`;
 window.__PREVIZ__={...window.__PREVIZ__,build:BUILD_INFO};
 showToast(`Previz Studio v${APP_VERSION} · Canonical Frame 준비 완료`);
+
+

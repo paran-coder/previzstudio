@@ -1,13 +1,13 @@
-# Previz Studio-v1.4.0 Context Notes
+# Previz Studio-v1.5.0 Context Notes
 
-2026-10-04: 사용자 승인에 따라 실제 Vite 앱의 프롬프트 구성 기능을 수정했습니다.
+목적: Blender 프리비즈 제작의 수작업을 줄이고 영상 생성용 공간·동선·카메라 레퍼런스를 만든다.
 
-- 기준: GitHub v1.3.5, commit 51c615350111ebcfcd1efe45265aa32acf232697.
-- 원인: 이전 v1.0.1 날짜형 파일은 Vite 배포 진입점이 아니었으며 실제 파서가 두사람/나이프액션 표현을 누락했습니다.
-- 실제 실행 경로: index.html → src/app.js → director/sequence/renderer, Vite dist 출력.
-- 수정: 인원·마주보기·나이프 액션/소품·명시 카메라 우선·해석 및 제한 안내.
-- 렌더러/영상 출력 기반 유지. video-exporter.js는 기존 내용 그대로입니다.
-- 외부 AI 연결 없음. 규칙 기반 지원 구문과 기본 블로킹 범위를 사용자에게 표시합니다.
-- 검증: 모델/구성 테스트 41개, 브라우저 16개, 구문 검사/빌드, MP4 디코딩 통과.
-- 배포 확인은 사용자의 GitHub 업로드 후 필요합니다. 에이전트는 push/deploy를 수행하지 않았습니다.
-- 레거시 server.mjs의 health 버전 1.3.5는 보존했습니다. Vite 앱 버전은 1.4.0입니다.
+2026-10-04 승인: 공간/인물/동선/카메라 및 편집·출력의 네 범위, 문서와 GitHub 패키지 갱신. 사용자 추가 결정: 구조화된 선택 입력을 기본으로 하고 AI 문장 분석은 후속으로 미룬다. API/키 설정은 추가하지 않는다.
+
+v1.4.0 업로드본을 보존하고 별도 v1.5.0에서 구현했다. 생성된 구성은 기존 scene schema 및 renderer/exporter로 전달한다. 환경 분위기는 supplementaryPrompt로 저장하고 단순 daylight 구조물을 사용한다.
+
+신규 핵심: createBlockingScene, editActionPath. 이동/대기 구간 연결과 잘못된 좌표/시간 차단. 우산과 입구 구조물 자체 구현. 기존 규칙 입력·나이프·추격·출력 경로 보존. video-exporter.js 그대로 유지.
+
+참고: ShowMotion 용어 탐색, Motion Index/CMU 모션 데이터 구조와 제한을 조사했다. 사이트 코드/설명/데이터를 복제하지 않았고 CMU 클립을 포함하지 않았다.
+
+검증 상세는 작업 폴더의 2026-10-04-previz-studio-v1.5.0-delivery.md에 기록한다. GitHub push와 실배포는 사용자가 수행한다.

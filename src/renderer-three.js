@@ -138,9 +138,9 @@ export class ThreeSceneEngine {
   mat(color,rough=.72,metal=.05){return new this.THREE.MeshStandardMaterial({color,roughness:rough,metalness:metal});}
   addBox(size,pos,color,parent=this.world){const T=this.THREE,m=new T.Mesh(new T.BoxGeometry(...size),this.mat(color));m.position.set(...pos);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
 
-  createMannequin(index){
+  createMannequin(index,actor={}){
     const T=this.THREE, root=new T.Group(); root.name=`actor-rig-${index}`;
-    const bodyColor=index===0?0xc9d0d7:0x9ea8b1, jointColor=0x6f7a84, skin=0xd2d7dc;
+    const bodyColor=[0x7eb9d6,0xe5b67b,0xa5c99c,0xc2a0d5][index%4], jointColor=0x6f7a84, skin=0xd2d7dc;
     const bodyMat=this.mat(bodyColor,.82), jointMat=this.mat(jointColor,.9), skinMat=this.mat(skin,.88);
     const pelvis=new T.Mesh(new T.BoxGeometry(.5,.28,.32),jointMat); pelvis.position.y=1.0; root.add(pelvis);
     const torsoPivot=new T.Group(); torsoPivot.position.y=1.08; root.add(torsoPivot);
@@ -150,7 +150,7 @@ export class ThreeSceneEngine {
     const limbs={};
     const makeLimb=(name,x,y,isArm)=>{const pivot=new T.Group();pivot.position.set(x,y,0);root.add(pivot);const len=isArm?.82:.98;const mesh=new T.Mesh(new T.CylinderGeometry(isArm?.095:.12,isArm?.085:.105,len,10),bodyMat);mesh.position.y=-len/2;mesh.castShadow=true;pivot.add(mesh);const end=new T.Mesh(new T.SphereGeometry(isArm?.105:.13,10,8),skinMat);end.position.y=-len;end.castShadow=true;pivot.add(end);limbs[name]=pivot;};
     makeLimb('armL',-.47,1.78,true);makeLimb('armR',.47,1.78,true);makeLimb('legL',-.19,.94,false);makeLimb('legR',.19,.94,false);
-    const label=makeTextSprite(T,`ACTOR_${String(index+1).padStart(2,'0')}`,index===0?'#dce7f0':'#aebac4');label.position.set(0,2.85,0);this.guides.add(label);label.userData.actorIndex=index;
+    const label=makeTextSprite(T,String(actor.role||actor.name||actor.id||`ACTOR_${index+1}`).slice(0,24),index===0?'#dce7f0':'#aebac4');label.position.set(0,2.85,0);this.guides.add(label);label.userData.actorIndex=index;
     return {root,torsoPivot,...limbs,label};
   }
 
@@ -167,6 +167,26 @@ export class ThreeSceneEngine {
     else if(env==='corridor'){this.addBox([.3,6,36],[-4.5,3,4],0x242a30);this.addBox([.3,6,36],[4.5,3,4],0x242a30);this.addBox([9,.2,36],[0,6,4],0x1d2228);}
     else {this.addBox([5,8,28],[-7,4,2],0x20262c);this.addBox([5,9,28],[7,4.5,2],0x1c2228);}
   }
+  buildEntrance(type){
+    // Entrance at z=-5 faces +Z, leaving a clear approach through the origin.
+    this.addBox([24,.2,28],[0,-.1,0],0xb8b9b5);
+    this.addBox([14,.12,3],[0,.06,-4],0xd9d5cb);
+    for(const x of [-4.2,4.2])this.addBox([5.6,5,.55],[x,2.5,-5],0xc6c3ba);
+    this.addBox([2.8,1.8,.55],[0,4.1,-5],0xc6c3ba);
+    this.addBox([2.8,3.2,.1],[0,1.6,-5.3],0x314b58);
+    for(const x of [-1.45,1.45])this.addBox([.12,3.25,.18],[x,1.63,-4.65],0x58616a);
+    this.addBox([2.95,.12,.18],[0,3.24,-4.65],0x58616a);
+    this.addBox([.08,.45,.12],[.95,1.35,-4.5],0xdadfe2);
+    if(type==='storefront'){
+      for(const x of [-4.15,4.15])this.addBox([3.8,2,.12],[x,1.65,-4.65],0x6e95a2);
+      this.addBox([12,.24,1.5],[0,3.7,-4.25],0x547d85);
+      this.addBox([6,.7,.2],[0,4.4,-4.6],0x354b53);
+    }else{
+      this.addBox([14,3,.6],[0,6.5,-5],0xaaaeb0);
+      for(const x of [-5,-2.5,0,2.5,5])this.addBox([1.5,1.7,.12],[x,6.4,-4.65],0x67818f);
+      this.addBox([4,.22,1.6],[0,3.5,-4.3],0x707c86);
+    }
+  }
   createCar(index,pos,rot){
     const T=this.THREE,g=new T.Group(),col=index%2?0x48515a:0x38424b;const body=new T.Mesh(new T.BoxGeometry(3.7,.72,1.7),this.mat(col,.45,.18));body.position.y=.65;body.castShadow=true;g.add(body);const cabin=new T.Mesh(new T.BoxGeometry(1.9,.58,1.5),this.mat(0x28313a,.32,.12));cabin.position.set(.15,1.18,0);cabin.castShadow=true;g.add(cabin);for(const x of [-1.25,1.25])for(const z of [-.82,.82]){const w=new T.Mesh(new T.CylinderGeometry(.32,.32,.2,14),this.mat(0x111416,.95));w.rotation.x=Math.PI/2;w.position.set(x,.35,z);g.add(w);}g.position.set(...pos);g.rotation.y=rot;this.world.add(g);return g;
   }
@@ -176,10 +196,29 @@ export class ThreeSceneEngine {
     const T=this.THREE,env=this.document.scene.environment;this.scene.background=new T.Color(env.time==='night'?0x06090d:0x8d9aa7);this.scene.fog=new T.Fog(env.time==='night'?0x06090d:0x8d9aa7,28,88);
     const hemi=new T.HemisphereLight(env.time==='night'?0x7f9abd:0xdbe8f5,0x18130f,env.time==='night'?.55:1.6);this.world.add(hemi);
     const moon=new T.DirectionalLight(env.time==='night'?0xc9dcff:0xffffff,env.time==='night'?2.1:2.8);moon.position.set(-8,12,-6);moon.castShadow=true;moon.shadow.mapSize.set(2048,2048);moon.shadow.camera.left=-24;moon.shadow.camera.right=24;moon.shadow.camera.top=24;moon.shadow.camera.bottom=-24;this.world.add(moon);
-    if(env.type==='road')this.buildRoad();else this.buildGeneric(env.type);
-    this.document.props.filter(p=>p.type!=='knife').forEach((p,i)=>{if(p.type==='car')this.createCar(i,p.position,p.rotationY);else this.addBox([2,1.2,1.6],[p.position[0],.6,p.position[2]],0x4b535a);});
-    this.document.actors.forEach((actor,i)=>{const rig=this.createMannequin(i);rig.root.position.set(...actor.position);rig.root.rotation.y=actor.rotationY;this.world.add(rig.root);this.actorRigs.set(actor.id,rig);});
+    if(env.type==='road')this.buildRoad();else if(['storefront','building'].includes(env.type))this.buildEntrance(env.type);else if(env.type==='studio')this.addBox([24,.2,28],[0,-.1,0],0xb8b9b5);else this.buildGeneric(env.type);
+    this.document.props.filter(p=>!['knife','umbrella'].includes(p.type)).forEach((p,i)=>{if(p.type==='car')this.createCar(i,p.position,p.rotationY);else this.addBox([2,1.2,1.6],[p.position[0],.6,p.position[2]],0x4b535a);});
+    this.document.actors.forEach((actor,i)=>{const rig=this.createMannequin(i,actor);rig.root.position.set(...actor.position);rig.root.rotation.y=actor.rotationY;this.world.add(rig.root);this.actorRigs.set(actor.id,rig);});
     this.document.props.filter(p=>p.type==='knife').forEach(p=>this.attachKnife(p));
+    this.document.props.filter(p=>p.type==='umbrella').forEach(p=>this.attachUmbrella(p));
+  }
+  attachUmbrella(p){
+    const rig=this.actorRigs.get(p.actorId);if(!rig)return;
+    const T=this.THREE,g=new T.Group();g.name=p.id;g.userData.propType='umbrella';
+    const shaft=new T.Mesh(new T.CylinderGeometry(.025,.025,1.8,8),this.mat(0x59616a));shaft.position.y=.85;g.add(shaft);
+    const canopy=new T.Mesh(new T.ConeGeometry(1.05,.4,12,1,true),new T.MeshStandardMaterial({color:0x527f99,roughness:.85,side:T.DoubleSide}));canopy.position.y=1.7;canopy.castShadow=true;g.add(canopy);
+    this.addBox([.09,.2,.09],[0,-.04,0],0x303942,g);
+    g.position.set(...(p.position||[0,-.82,0]));g.rotation.y=p.rotationY||0;
+    const hand=p.hand==='left'?'armL':'armR';rig[hand].add(g);
+    (rig.heldUmbrellas??=[]).push({group:g,hand,rotationY:p.rotationY||0});
+  }
+  updateHeldProps(rig){
+    for(const prop of rig.heldUmbrellas||[]){
+      const arm=rig[prop.hand];arm.rotation.set(-.65,0,prop.hand==='armL'?.12:-.12);
+      // Counter the arm tilt so the canopy remains upright as the hand travels.
+      prop.group.quaternion.copy(arm.quaternion).invert();
+      prop.group.rotateY(prop.rotationY);
+    }
   }
   attachKnife(p){
     const rig=this.actorRigs.get(p.actorId);if(!rig)return;
@@ -213,7 +252,7 @@ export class ThreeSceneEngine {
     this.orbitYaw=Math.atan2(offset.x,offset.z);
     this.updateDirectorCamera();
   }
-  applyTime(time){if(!this.document)return;this.time=clamp(time,0,this.document.sequence.duration);for(const actor of this.document.actors)this.applyActorPose(actor,evaluateActorAtTime(this.document,actor,this.time));this.updateLabels();const c=evaluateCameraAtTime(this.document,this.time);this.shotCamera.position.set(...c.position);this.shotCamera.lookAt(new this.THREE.Vector3(...c.target));this.shotCamera.fov=2*Math.atan(36/(2*c.lens))*180/Math.PI;this.shotCamera.aspect=this.getOutputAspect();this.shotCamera.updateProjectionMatrix();this.activeShot=c.shot;if(!this.gizmoDragging)this.syncEditProxy();return c;}
+  applyTime(time){if(!this.document)return;this.time=clamp(time,0,this.document.sequence.duration);for(const actor of this.document.actors){this.applyActorPose(actor,evaluateActorAtTime(this.document,actor,this.time));this.updateHeldProps(this.actorRigs.get(actor.id));}this.updateLabels();const c=evaluateCameraAtTime(this.document,this.time);this.shotCamera.position.set(...c.position);this.shotCamera.lookAt(new this.THREE.Vector3(...c.target));this.shotCamera.fov=2*Math.atan(36/(2*c.lens))*180/Math.PI;this.shotCamera.aspect=this.getOutputAspect();this.shotCamera.updateProjectionMatrix();this.activeShot=c.shot;if(!this.gizmoDragging)this.syncEditProxy();return c;}
   updateDirectorCamera(){const cp=Math.cos(this.orbitPitch);this.directorCamera.position.set(this.directorTarget.x+Math.sin(this.orbitYaw)*cp*this.orbitRadius,this.directorTarget.y+Math.sin(this.orbitPitch)*this.orbitRadius,this.directorTarget.z+Math.cos(this.orbitYaw)*cp*this.orbitRadius);this.directorCamera.lookAt(this.directorTarget);}
   setViewMode(mode){this.viewMode=mode==='preview'?'preview':'edit';this.guides.visible=this.viewMode==='edit';if(!this.exportState)this.resize();this.syncEditProxy();}
   setPlaying(v){this.playing=Boolean(v);}

@@ -5,9 +5,9 @@ import { APP_VERSION, BUILD_INFO } from '../src/build-info.js';
 
 const root=new URL('../',import.meta.url);
 
-test('런타임 build identity는 v1.4.0으로 고정된다',()=>{
-  assert.equal(APP_VERSION,'1.4.0');
-  assert.equal(BUILD_INFO.appVersion,'1.4.0');
+test('런타임 build identity는 v1.5.0으로 고정된다',()=>{
+  assert.equal(APP_VERSION,'1.5.0');
+  assert.equal(BUILD_INFO.appVersion,'1.5.0');
   assert.ok(BUILD_INFO.buildId);
 });
 
@@ -25,3 +25,4 @@ test('Vercel 캐시는 HTML no-store, hashed asset immutable 정책을 사용한
   assert.match(rootHeader.headers[0].value,/no-store/);
   assert.match(assetHeader.headers[0].value,/immutable/);
 });
+

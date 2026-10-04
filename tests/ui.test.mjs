@@ -54,7 +54,7 @@ test('Vite production build는 CDN import map 대신 hashed assets와 npm depend
   const vercel=JSON.parse(await readFile(new URL('vercel.json',root),'utf8'));
   assert.doesNotMatch(html,/importmap/);
   assert.doesNotMatch(html,/cdn\.jsdelivr\.net/);
-  assert.equal(pkg.version,'1.4.0');
+  assert.equal(pkg.version,'1.5.0');
   assert.equal(pkg.dependencies.three,'0.185.1');
   assert.equal(pkg.dependencies.mediabunny,'1.55.7');
   assert.match(pkg.scripts.build,/vite build/);
@@ -76,15 +76,17 @@ test('v1.3.1 UI는 Camera/Actor Transform 편집 컨트롤을 제공한다',asyn
 });
 
 
-test('v1.3.1 UI는 24/25/30/60 FPS 선택과 frame count를 제공한다',async()=>{
+test('v1.5.0 UI는 8초 기본 장면과 24/25/30/60 FPS 선택 및 frame count를 제공한다',async()=>{
   const html=await readFile(new URL('index.html',root),'utf8');
   assert.match(html,/id="fps-select"/);
   for(const fps of [24,25,30,60]) assert.match(html,new RegExp(`value="${fps}"`));
   assert.match(html,/value="30" selected/);
-  assert.match(html,/id="render-frame-count">600/);
-  assert.match(html,/id="timeline-frame-count"[^>]*>600 frames/);
+  assert.match(html,/id="render-frame-count">240/);
+  assert.match(html,/id="timeline-frame-count"[^>]*>240 frames/);
   const app=await readFile(new URL('src/app.js',root),'utf8');
   assert.match(app,/SUPPORTED_FPS/);
   assert.match(app,/timeline\.step=String\(1\/fps\)/);
   assert.match(app,/setProjectFps/);
 });
+
+
