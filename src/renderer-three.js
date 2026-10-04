@@ -1,3 +1,5 @@
+import { editActionPath } from './2026-10-04-blocking-plan.js';
+import { translateShotCamera, translateShotTarget, copyCameraToShot } from './2026-10-04-camera-edit.js';
 import { evaluateActorAtTime, evaluateCameraAtTime, deriveEditOverview, fitAspectRect, outputAspect, cameraEditSnapshot, ensureManualCamera, translateActorPath, rotateActorPath } from './sequence.js';
 import { BUILD_LABEL } from './build-info.js';
 
@@ -26,7 +28,7 @@ export class ThreeSceneEngine {
     this.directorCamera=new T.PerspectiveCamera(43,1,.05,180); this.shotCamera=new T.PerspectiveCamera(50,1,.05,180);
     this.directorTarget=new T.Vector3(0,1.1,-8); this.orbitYaw=.72; this.orbitPitch=.20; this.orbitRadius=17;
     this.dragging=false; this.dragStart=null; this.directorUserAdjusted=false; this.stageRect={width:1,height:1,left:0,top:0};
-    this.editSelection={type:'camera',id:'camera'}; this.cameraEditKey='start'; this.transformMode='translate'; this.gizmoDragging=false; this.onDocumentEdit=null;
+    this.actorEditEndpoint='wholePath';this.actorEditActionIndex=0;this.cameraEditScope='wholeShot';this.onSelectionChange=null;this.editSelection={type:'camera',id:'camera'}; this.cameraEditKey='start'; this.transformMode='translate'; this.gizmoDragging=false; this.onDocumentEdit=null;
     this.renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,powerPreference:'high-performance'});
     this.renderer.setClearColor(0x070a0e,1); this.renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
     this.renderer.shadowMap.enabled=true; this.renderer.shadowMap.type=T.PCFSoftShadowMap;
@@ -51,11 +53,15 @@ export class ThreeSceneEngine {
     this.cameraProxy.visible=false;this.targetProxy.visible=false;this.actorProxy.visible=false;this.cameraTargetLine.visible=false;
     this.transformControls=new TransformControls(this.directorCamera,this.canvas);
     const helper=this.transformControls.getHelper?.()||this.transformControls;this.transformHelper=helper;this.scene.add(helper);helper.visible=false;
-    this.transformControls.addEventListener('dragging-changed',e=>{this.gizmoDragging=Boolean(e.value);if(!this.gizmoDragging)this.syncEditProxy();});
+    this.transformControls.addEventListener('dragging-changed',e=>{const next=Boolean(e.value);if(next!==this.gizmoDragging){this.gizmoDragging=next;this.onEditTransaction?.(next?'begin':'end');}if(!this.gizmoDragging)this.syncEditProxy();});
     this.transformControls.addEventListener('objectChange',()=>this.commitGizmoChange());
   }
   currentShotIndex(){const id=this.activeShot?.id;const i=this.document?.shots?.findIndex(s=>s.id===id);return i>=0?i:0;}
-  setEditSelection(type,id=''){this.editSelection={type:type==='actor'?'actor':'camera',id};this.syncEditProxy();}
+  setEditSelection(type,id=''){this.editSelection={type:['actor','camera','prop','environment','none'].includes(type)?type:'none',id};this.syncEditProxy();}
+  setActorEditEndpoint(endpoint,actionIndex=0){this.actorEditEndpoint=['from','to'].includes(endpoint)?endpoint:'wholePath';this.actorEditActionIndex=Math.max(0,Math.floor(actionIndex)||0);this.syncEditProxy();}
+  setCameraEditScope(scope){this.cameraEditScope=['start','end'].includes(scope)?scope:'wholeShot';if(this.cameraEditScope!=='wholeShot')this.cameraEditKey=this.cameraEditScope;this.syncEditProxy();}
+  setPreviewContainer(container){if(!container)return;this.previewCanvas=document.createElement('canvas');this.previewCanvas.setAttribute('aria-label','촬영 프리뷰');this.previewCanvas.style.cssText='width:100%;height:100%;object-fit:contain;display:block';container.replaceChildren(this.previewCanvas);}
+  copyDirectorToShot(){if(!this.document)return null;this.updateDirectorCamera();const change=copyCameraToShot(this.document,this.currentShotIndex(),{position:this.directorCamera.position.toArray(),target:this.directorTarget.toArray(),lens:36/(2*Math.tan(this.directorCamera.fov*Math.PI/360))});this.refreshEditing();this.onDocumentEdit?.(change);return change;}
   setCameraEditKey(key){this.cameraEditKey=key==='end'?'end':'start';this.syncEditProxy();}
   setTransformMode(mode){this.transformMode=['translate','rotate','target'].includes(mode)?mode:'translate';this.syncEditProxy();}
   syncEditProxy(){
@@ -63,12 +69,14 @@ export class ThreeSceneEngine {
     const T=this.THREE,visible=this.viewMode==='edit'&&!this.exportState;
     this.cameraProxy.visible=false;this.targetProxy.visible=false;this.actorProxy.visible=false;this.cameraTargetLine.visible=false;this.transformHelper.visible=visible;
     if(!visible){this.transformControls.detach();return;}
+    if(!['actor','camera'].includes(this.editSelection.type)){this.transformControls.detach();this.transformHelper.visible=false;return;}
     if(this.editSelection.type==='actor'){
       const actor=this.document.actors.find(a=>a.id===this.editSelection.id)||this.document.actors[0];if(!actor){this.transformControls.detach();return;}
-      const state=evaluateActorAtTime(this.document,actor,this.time);this.actorProxy.position.set(...state.position);this.actorProxy.rotation.set(0,state.rotationY,0);this.actorProxy.visible=true;
+      const state=evaluateActorAtTime(this.document,actor,this.time);const point=actor.actions?.[this.actorEditActionIndex]?.[this.actorEditEndpoint];this.actorProxy.position.set(...(this.actorEditEndpoint!=='wholePath'&&point?point:state.position));this.actorProxy.rotation.set(0,state.rotationY,0);this.actorProxy.visible=true;
       this.transformControls.setMode(this.transformMode==='rotate'?'rotate':'translate');this.transformControls.attach(this.actorProxy);return;
     }
     const idx=this.currentShotIndex(),snap=cameraEditSnapshot(this.document,idx,this.cameraEditKey);if(!snap){this.transformControls.detach();return;}
+    const manual=this.document.shots[idx].camera.manual;if(manual?.enabled&&manual.targetMode==='free')snap.target=[...(this.cameraEditKey==='end'?manual.targetEnd:manual.targetStart)];
     this.cameraProxy.position.set(...snap.position);this.cameraProxy.lookAt(new T.Vector3(...snap.target));this.cameraProxy.visible=true;
     this.targetProxy.position.set(...snap.target);this.targetProxy.visible=true;
     const attr=this.cameraTargetLine.geometry.getAttribute('position');attr.setXYZ(0,snap.position[0],snap.position[1],snap.position[2]);attr.setXYZ(1,snap.target[0],snap.target[1],snap.target[2]);attr.needsUpdate=true;this.cameraTargetLine.visible=true;
@@ -78,10 +86,12 @@ export class ThreeSceneEngine {
   commitGizmoChange(){
     if(!this.document||this.viewMode!=='edit')return;
     const idx=this.currentShotIndex();
+    if(!['actor','camera'].includes(this.editSelection.type)){this.transformControls.detach();this.transformHelper.visible=false;return;}
     if(this.editSelection.type==='actor'){
       const actor=this.document.actors.find(a=>a.id===this.editSelection.id)||this.document.actors[0];if(!actor)return;
       const state=evaluateActorAtTime(this.document,actor,this.time);
       if(this.transformMode==='rotate')rotateActorPath(this.document,actor.id,this.actorProxy.rotation.y);
+      else if(this.actorEditEndpoint!=='wholePath'){const action=actor.actions[this.actorEditActionIndex];if(!action)return;const patch={[this.actorEditEndpoint]:this.actorProxy.position.toArray()};if(['idle','stop','turn'].includes(action.type)){patch.from=this.actorProxy.position.toArray();patch.to=this.actorProxy.position.toArray();}const next=editActionPath(this.document,actor.id,this.actorEditActionIndex,patch);Object.assign(this.document,next);}
       else translateActorPath(this.document,actor.id,[this.actorProxy.position.x-state.position[0],this.actorProxy.position.y-state.position[1],this.actorProxy.position.z-state.position[2]]);
       this.refreshPathGuides();this.applyTime(this.time);this.onDocumentEdit?.({type:'actor',id:actor.id});return;
     }
@@ -89,17 +99,19 @@ export class ThreeSceneEngine {
     const pkey=key==='end'?'end':'start',tkey=key==='end'?'targetEnd':'targetStart';
     if(this.transformMode==='target'){
       const snap=cameraEditSnapshot(this.document,idx,key);
-      if(manual.targetMode==='free')manual[tkey]=this.targetProxy.position.toArray();
+      if(this.cameraEditScope==='wholeShot')translateShotTarget(this.document,idx,key,this.targetProxy.position.toArray());
+      else if(manual.targetMode==='free')manual[tkey]=this.targetProxy.position.toArray();
       else {
         const base=[snap.target[0]-manual.targetOffset[0],snap.target[1]-manual.targetOffset[1],snap.target[2]-manual.targetOffset[2]];
         manual.targetOffset=[this.targetProxy.position.x-base[0],this.targetProxy.position.y-base[1],this.targetProxy.position.z-base[2]];
       }
     } else {
-      manual[pkey]=this.cameraProxy.position.toArray();
+      if(this.transformMode==='translate'&&this.cameraEditScope==='wholeShot')translateShotCamera(this.document,idx,key,this.cameraProxy.position.toArray());
+      else manual[pkey]=this.cameraProxy.position.toArray();
       if(this.transformMode==='rotate'){
         const snap=cameraEditSnapshot(this.document,idx,key),dist=Math.max(.5,snap.distance);
         const forward=new this.THREE.Vector3(0,0,-1).applyQuaternion(this.cameraProxy.quaternion).normalize();
-        const target=this.cameraProxy.position.clone().add(forward.multiplyScalar(dist));manual.targetMode='free';manual[tkey]=target.toArray();manual.targetOffset=[0,0,0];
+        const target=this.cameraProxy.position.clone().add(forward.multiplyScalar(dist));if(this.cameraEditScope==='wholeShot'){manual.targetStart=cameraEditSnapshot(this.document,idx,'start').target;manual.targetEnd=cameraEditSnapshot(this.document,idx,'end').target;manual.targetMode='free';translateShotTarget(this.document,idx,key,target.toArray());}else{manual.targetMode='free';manual[tkey]=target.toArray();}manual.targetOffset=[0,0,0];
       }
     }
     this.refreshPathGuides();this.applyTime(this.time);this.onDocumentEdit?.({type:'camera',shotIndex:idx});
@@ -110,7 +122,7 @@ export class ThreeSceneEngine {
     const c=this.canvas;
     c.addEventListener('pointerdown',e=>{if(this.viewMode!=='edit'||this.transformControls?.axis)return;this.directorUserAdjusted=true;this.dragging=true;this.dragStart={x:e.clientX,y:e.clientY,yaw:this.orbitYaw,pitch:this.orbitPitch};c.setPointerCapture?.(e.pointerId)});
     c.addEventListener('pointermove',e=>{if(!this.dragging||!this.dragStart)return;this.orbitYaw=this.dragStart.yaw-(e.clientX-this.dragStart.x)*.006;this.orbitPitch=clamp(this.dragStart.pitch+(e.clientY-this.dragStart.y)*.004,.08,1.05)});
-    const stop=()=>{this.dragging=false;this.dragStart=null}; c.addEventListener('pointerup',stop);c.addEventListener('pointercancel',stop);
+    const stop=e=>{if(e?.type==='pointerup'&&this.dragStart&&Math.hypot(e.clientX-this.dragStart.x,e.clientY-this.dragStart.y)<5&&!this.gizmoDragging){const rect=c.getBoundingClientRect(),ray=new this.THREE.Raycaster();ray.setFromCamera(new this.THREE.Vector2((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1),this.directorCamera);const hit=ray.intersectObjects([this.world,...(this.cameraProxy.visible?[this.cameraProxy]:[])],true)[0];if(hit){let obj=hit.object,selection=null;while(obj){if(obj.userData.propId){selection={type:'prop',id:obj.userData.propId};break;}if(obj.userData.actorId){selection={type:'actor',id:obj.userData.actorId};break;}if(obj===this.cameraProxy){selection={type:'camera',id:'camera'};break;}obj=obj.parent;}selection??={type:'environment',id:'environment'};this.setEditSelection(selection.type,selection.id);this.onSelectionChange?.(selection);}}this.dragging=false;this.dragStart=null}; c.addEventListener('pointerup',stop);c.addEventListener('pointercancel',stop);
     c.addEventListener('wheel',e=>{if(this.viewMode!=='edit')return;e.preventDefault();this.directorUserAdjusted=true;this.orbitRadius=clamp(this.orbitRadius+Math.sign(e.deltaY)*1,8,42)},{passive:false});
   }
   getOutputAspect(){return outputAspect(this.document);}
@@ -197,14 +209,14 @@ export class ThreeSceneEngine {
     const hemi=new T.HemisphereLight(env.time==='night'?0x7f9abd:0xdbe8f5,0x18130f,env.time==='night'?.55:1.6);this.world.add(hemi);
     const moon=new T.DirectionalLight(env.time==='night'?0xc9dcff:0xffffff,env.time==='night'?2.1:2.8);moon.position.set(-8,12,-6);moon.castShadow=true;moon.shadow.mapSize.set(2048,2048);moon.shadow.camera.left=-24;moon.shadow.camera.right=24;moon.shadow.camera.top=24;moon.shadow.camera.bottom=-24;this.world.add(moon);
     if(env.type==='road')this.buildRoad();else if(['storefront','building'].includes(env.type))this.buildEntrance(env.type);else if(env.type==='studio')this.addBox([24,.2,28],[0,-.1,0],0xb8b9b5);else this.buildGeneric(env.type);
-    this.document.props.filter(p=>!['knife','umbrella'].includes(p.type)).forEach((p,i)=>{if(p.type==='car')this.createCar(i,p.position,p.rotationY);else this.addBox([2,1.2,1.6],[p.position[0],.6,p.position[2]],0x4b535a);});
-    this.document.actors.forEach((actor,i)=>{const rig=this.createMannequin(i,actor);rig.root.position.set(...actor.position);rig.root.rotation.y=actor.rotationY;this.world.add(rig.root);this.actorRigs.set(actor.id,rig);});
+    this.document.props.filter(p=>!['knife','umbrella'].includes(p.type)).forEach((p,i)=>{const mesh=p.type==='car'?this.createCar(i,p.position,p.rotationY):this.addBox([2,1.2,1.6],[p.position[0],.6,p.position[2]],0x4b535a);mesh.userData.propId=p.id;});
+    this.document.actors.forEach((actor,i)=>{const rig=this.createMannequin(i,actor);rig.root.position.set(...actor.position);rig.root.rotation.y=actor.rotationY;rig.root.userData.actorId=actor.id;this.world.add(rig.root);this.actorRigs.set(actor.id,rig);});
     this.document.props.filter(p=>p.type==='knife').forEach(p=>this.attachKnife(p));
     this.document.props.filter(p=>p.type==='umbrella').forEach(p=>this.attachUmbrella(p));
   }
   attachUmbrella(p){
     const rig=this.actorRigs.get(p.actorId);if(!rig)return;
-    const T=this.THREE,g=new T.Group();g.name=p.id;g.userData.propType='umbrella';
+    const T=this.THREE,g=new T.Group();g.name=p.id;g.userData.propId=p.id;g.userData.propType='umbrella';
     const shaft=new T.Mesh(new T.CylinderGeometry(.025,.025,1.8,8),this.mat(0x59616a));shaft.position.y=.85;g.add(shaft);
     const canopy=new T.Mesh(new T.ConeGeometry(1.05,.4,12,1,true),new T.MeshStandardMaterial({color:0x527f99,roughness:.85,side:T.DoubleSide}));canopy.position.y=1.7;canopy.castShadow=true;g.add(canopy);
     this.addBox([.09,.2,.09],[0,-.04,0],0x303942,g);
@@ -222,7 +234,7 @@ export class ThreeSceneEngine {
   }
   attachKnife(p){
     const rig=this.actorRigs.get(p.actorId);if(!rig)return;
-    const T=this.THREE,g=new T.Group();g.name=p.id;g.userData.propType='knife';
+    const T=this.THREE,g=new T.Group();g.name=p.id;g.userData.propId=p.id;g.userData.propType='knife';
     const handle=this.addBox([.075,.18,.075],[0,0,0],0x30343a,g);
     const guard=this.addBox([.19,.035,.08],[0,-.095,0],0xc6cbd0,g);
     const blade=this.addBox([.075,.36,.025],[0,-.29,0],0xe1e6ed,g);
@@ -244,6 +256,7 @@ export class ThreeSceneEngine {
   frameEditOverview(){
     if(!this.document)return;
     const view=deriveEditOverview(this.document),T=this.THREE;
+    if(['storefront','building'].includes(this.document.scene.environment.type)){const points=this.document.actors.flatMap(a=>[a.position,...a.actions.flatMap(x=>[x.from,x.to].filter(Boolean))]);const minZ=Math.min(-5,...points.map(p=>p[2])),maxZ=Math.max(2,...points.map(p=>p[2])),spread=Math.max(12,maxZ-minZ);view.target=[0,1.7,(minZ+maxZ)/2];view.position=[spread*.62,Math.max(8,spread*.55),maxZ+spread*.8];}
     this.directorTarget.set(...view.target);
     const offset=new T.Vector3(view.position[0]-view.target[0],view.position[1]-view.target[1],view.position[2]-view.target[2]);
     const radius=Math.max(1,offset.length());
@@ -264,7 +277,8 @@ export class ThreeSceneEngine {
     const cameraState=this.applyTime(time);
     this.shotCamera.aspect=this.getOutputAspect();
     this.shotCamera.updateProjectionMatrix();
-    this.renderer.render(this.scene,this.shotCamera);
+    const hidden=[this.guides,this.cameraProxy,this.targetProxy,this.actorProxy,this.cameraTargetLine,this.transformHelper],visible=hidden.map(o=>o.visible);hidden.forEach(o=>o.visible=false);
+    try{this.renderer.render(this.scene,this.shotCamera);}finally{hidden.forEach((o,i)=>o.visible=visible[i]);}
     return cameraState;
   }
   renderEditFrame(time=this.time){
@@ -280,6 +294,8 @@ export class ThreeSceneEngine {
       if(this.viewMode==='preview')this.renderCanonicalFrame(next);else this.applyTime(next);
       this.onTime?.(this.time,this.playing,this.activeShot);
     }
+    if(this.exportState)return;
+    if(this.previewCanvas&&this.document){const size=this.renderer.getSize(new this.THREE.Vector2()),width=size.x,height=size.y,ratio=this.renderer.getPixelRatio(),rect=fitAspectRect(width,height,this.getOutputAspect());this.renderer.setViewport(rect.left,rect.top,rect.width,rect.height);this.renderer.setScissor(rect.left,rect.top,rect.width,rect.height);this.renderer.setScissorTest(true);this.renderCanonicalFrame(this.time);this.previewCanvas.width=Math.max(1,Math.round(rect.width));this.previewCanvas.height=Math.max(1,Math.round(rect.height));this.previewCanvas.getContext('2d').drawImage(this.canvas,rect.left*ratio,(height-rect.top-rect.height)*ratio,rect.width*ratio,rect.height*ratio,0,0,this.previewCanvas.width,this.previewCanvas.height);this.renderer.setScissorTest(false);this.renderer.setViewport(0,0,width,height);}
     if(this.viewMode==='preview')this.renderCanonicalFrame(this.time);else this.renderEditFrame(this.time);
   }
   async captureAtTime(time){

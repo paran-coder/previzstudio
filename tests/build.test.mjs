@@ -5,9 +5,9 @@ import { APP_VERSION, BUILD_INFO } from '../src/build-info.js';
 
 const root=new URL('../',import.meta.url);
 
-test('런타임 build identity는 v1.5.0으로 고정된다',()=>{
-  assert.equal(APP_VERSION,'1.5.0');
-  assert.equal(BUILD_INFO.appVersion,'1.5.0');
+test('런타임 build identity는 v1.6.0으로 고정된다',()=>{
+  assert.equal(APP_VERSION,'1.6.0');
+  assert.equal(BUILD_INFO.appVersion,'1.6.0');
   assert.ok(BUILD_INFO.buildId);
 });
 

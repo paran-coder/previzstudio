@@ -55,3 +55,71 @@
 [hidden]{display:none!important}.structured-panel{background:#141d22}.structured-panel textarea{resize:vertical;min-height:64px}.structured-panel .필드{margin:9px 0}.path-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.path-grid label{display:grid;gap:5px;font-size:11px;color:var(--text-2)}.path-grid input{width:100%;min-width:0;padding:7px;border:1px solid var(--line);border-radius:4px;background:#0d1217}.blocking-summary{font-size:12px;color:var(--text-2);overflow-wrap:anywhere}.프롬프트독{min-height:68px;grid-template-columns:250px minmax(0,1fr) 145px}.프롬프트독 .프롬프트맥락 strong{font-size:11px}.선택입력:focus-visible,.path-grid input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.트리아이템 span{min-width:0;overflow-wrap:anywhere}
 @media(min-width:931px){.앱{grid-template-rows:64px minmax(0,1fr) 78px}.작업공간{grid-template-columns:190px minmax(360px,1fr) 304px}.중앙열{grid-template-rows:minmax(0,1fr) 224px}}
 @media(max-width:930px){.프롬프트독{grid-template-columns:minmax(0,1fr) 140px}.blocking-summary{font-size:11px}.상단바{gap:6px;flex-wrap:wrap}.상단액션{flex-wrap:wrap}.속성패널{max-height:700px}.중앙열{height:640px}.토스트{bottom:90px}}
+
+/* Previz Studio v1.6.0: shared scene, work view and permanent shot preview */
+:root { --panel:#161d28; --line:#293446; --accent:#87cdb8; }
+html,body { height:100%; background:#0c1119; }
+.앱 {height:100dvh;display:flex;flex-direction:column;overflow:hidden;}
+.상단바 { flex:0 0 64px; padding:12px 20px;border-bottom:1px solid #293446;background:#111823; }
+.브랜드마크 {background:#87cdb8;color:#152c27;border-radius:10px;}
+.작업공간 {flex:1;min-height:0;display:grid;grid-template-columns:160px minmax(280px,1fr) 320px;gap:12px;padding:12px;}
+.씬패널,.속성패널 {min-height:0;overflow:auto;background:#151d29;border:1px solid #293446;border-radius:12px;}
+.씬패널 .연속성카드 {display:none;}
+.중앙열 {min-height:0;display:flex;flex-direction:column;gap:10px;}
+.뷰포트카드 {flex:1;min-height:180px;position:relative;display:flex;flex-direction:column;border:1px solid #293446;border-radius:12px;overflow:hidden;}
+.뷰포트 {flex:1;min-height:160px;position:relative;height:auto;aspect-ratio:auto;}
+.뷰포트 canvas {width:100%;height:100%;display:block;}
+.work-tools {display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:#182331;font-size:11px;color:#b6c4d5;}
+.work-tools .버튼 {font-size:11px;padding:8px;}
+.뷰포트툴바 {padding:10px 12px;min-height:48px;}
+.뷰포트메타,.엔진상태,.세이프프레임 {display:none;}
+.뷰상태 {padding:6px 12px;font-size:11px;position:static;}
+.뷰포트하단 {position:static;padding:7px 12px;background:#111b27;}
+.preview-header {padding:12px 14px 8px;display:flex;justify-content:space-between;font-size:12px;font-weight:600;}
+.preview-header span {font-size:9px;color:#91a2b6;}
+#shot-preview {position:relative;aspect-ratio:16/9;background:#080c12;margin:0 10px;border-radius:8px;overflow:hidden;}
+#shot-preview canvas {display:block;width:100%;height:100%;}
+.inspector-title {padding:15px 14px 9px;font-size:15px;font-weight:700;color:#c8f0e2;}
+.속성섹션 {padding:12px 14px;border-bottom:1px solid #293446;}
+.속성패널>.패널헤더,.현재샷카드,.현재샷섹션 .섹션제목 {display:none;}
+.트랜스폼섹션 {border-bottom:0;}
+.기즈모모드 {margin:10px 0;}
+.타임라인카드 {flex:0 0 auto;padding:10px 12px;background:#151d29;}
+.타임라인헤더 {gap:8px;}
+.타임라인제목 .메타라벨,.프레임카운트 {display:none;}
+.트랙목록 .트랙행:not(:first-child) {display:none;}
+.트랙목록.expanded {max-height:145px;overflow:auto;}
+.트랙목록.expanded .트랙행 {display:flex;}
+.프롬프트독 {flex:0 0 auto;display:block;margin:0;padding:12px 20px 14px;background:#131d29;border-top:1px solid #314158;max-height:40vh;overflow:auto;}
+.description-row {display:flex;gap:12px;align-items:end;}
+.description-row label {flex:1;font-size:11px;font-weight:600;color:#a8bdcf;}
+#scene-description {display:block;resize:vertical;width:100%;min-height:54px;max-height:100px;margin-top:5px;padding:9px 12px;background:#0d1520;border:1px solid #3d5168;color:#edf4f8;border-radius:8px;font:inherit;font-size:13px;}
+.description-help {font-size:10px;color:#94a9bf;margin:6px 0;}
+.input-chips {display:flex;gap:6px;flex-wrap:wrap;}
+.input-chip {border:1px solid #3a4c60;background:#233345;color:#d7e5ed;padding:5px 10px;border-radius:20px;font-size:11px;cursor:pointer;}
+#blocking-summary {font-size:10px;margin:4px 0;color:#a2b8c9;}
+#scene-input-options>summary {font-size:11px;color:#8dcdb9;cursor:pointer;padding:2px;}
+#scene-input-options .structured-panel {padding:12px 0;border:0;}
+#structured-fields {display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:8px 14px;}
+#blocking-roles {display:flex;gap:7px;grid-column:span 2;}
+#structured-fields>.도움말 {grid-column:1/-1;}
+#scene-input-options textarea {min-height:50px;}
+.트리아이템 {width:100%;text-align:left;border:0;background:transparent;color:#bfcddd;padding:11px 9px;cursor:pointer;}
+.트리아이템.selected {background:#29473f;color:#d5f7e8;border-radius:7px;}
+.트리아이템 small {font-size:10px;}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,summary:focus-visible {outline:2px solid #91ddc2;outline-offset:2px;}
+[hidden] {display:none!important;}
+summary {cursor:pointer;font-size:11px;color:#9ec0d2;padding:7px 0;}
+.렌더섹션 {margin:8px;border:1px solid #293446;border-radius:8px;}
+@media(max-width:1100px) { .작업공간 {grid-template-columns:130px minmax(220px,1fr) 285px;gap:8px;padding:8px;} .상단바 {padding:10px;} .브랜드설명 {display:none;} .버튼 {font-size:11px;} }
+@media(max-width:780px) { .앱 {height:auto;min-height:100dvh;overflow:visible;} .상단바 {flex-wrap:wrap;height:auto;gap:8px;} .상단액션 {flex-wrap:wrap;gap:5px;} .작업공간 {display:grid;grid-template-columns:minmax(0,1fr);flex:none;} .씬패널 {max-height:115px;} .씬트리 {display:flex;gap:12px;} .트리그룹 {min-width:130px;} .중앙열 {height:440px;} .속성패널 {max-height:520px;display:block;} #shot-preview {max-width:480px;margin:0 auto;} .프롬프트독 {max-height:none;position:static;padding:12px;} #structured-fields {grid-template-columns:repeat(2,minmax(0,1fr));} .description-row {align-items:stretch;} .description-row .주버튼 {min-width:90px;} }
+@media(prefers-reduced-motion:reduce) { *,*::before,*::after {animation:none!important;transition:none!important;} }
+
+.타임라인카드 {display:flex;flex-direction:column;gap:5px;min-height:116px;} .트랙목록.expanded .트랙행 {display:grid;} .룰러{min-height:16px;} .트랙목록{min-height:33px;} .마스터슬라이더{position:static;width:100%;height:12px;margin:3px 0;}
+
+.뷰포트툴바 {position:static;inset:auto;flex:0 0 auto;background:#111923;z-index:auto;} .work-tools {position:relative;z-index:1;flex:0 0 auto;} .뷰포트 {inset:auto;} .뷰상태,.뷰포트하단 {inset:auto;flex:0 0 auto;} .상단액션 .주버튼 {white-space:nowrap;} .샷요약상단 strong {white-space:normal;}
+
+.mobile-view-toggle {display:none;}
+@media(max-width:780px){html,body{overflow:hidden;} .앱{height:100dvh;min-height:0;display:flex;overflow:hidden;} .상단바{position:static;min-height:0;flex:0 0 auto;padding:8px;} .브랜드{gap:7px;} .브랜드설명,.버전{display:none;} .브랜드행 strong{font-size:14px;} .브랜드마크{width:28px;height:28px;} .상단액션{gap:4px;} .상단액션 .버튼{padding:6px 7px;min-height:28px;} .상단액션 .세그먼트{display:none;} .mobile-view-toggle{display:flex;gap:7px;padding:5px 8px;flex:0 0 auto;} .mobile-view-toggle .버튼{flex:1;padding:6px;min-height:28px;} .작업공간{display:flex;flex-direction:column;flex:1;min-height:0;overflow:auto;gap:7px;} .씬패널{flex:0 0 auto;max-height:80px;margin:0;overflow:auto;} .씬패널 .패널헤더{display:none;} .씬트리{padding:3px;gap:6px;} .트리그룹{min-width:110px;margin:0;} .트리제목{font-size:9px;padding:3px;} .트리아이템{font-size:10px;padding:6px;} .트리아이템 small{display:none;} .중앙열{flex:1;min-height:280px;height:auto;margin:0;} .뷰포트카드{min-height:200px;} .뷰포트툴바,.뷰상태,.뷰포트하단{display:none;} .work-tools{padding:6px;gap:3px;flex-wrap:wrap;} .work-tools span{font-size:9px;} .work-tools .버튼{font-size:9px;padding:5px;min-height:24px;} .타임라인카드{min-height:95px;padding:5px;} .타임라인헤더{flex-wrap:wrap;} .타임라인헤더 .버튼{font-size:9px;padding:4px;min-height:25px;} .타임라인제목 strong{font-size:10px;} .속성패널{display:none;flex:none;max-height:none;margin:0;overflow:visible;} .앱[data-mobile-view="shot"] .속성패널{display:block;} .앱[data-mobile-view="shot"] .중앙열{display:none;} .프롬프트독{flex:0 0 auto;max-height:36dvh;overflow:auto;margin:0;padding:8px 10px;} #scene-description{min-height:44px;height:44px;max-height:64px;} .description-row{gap:7px;} .description-row .주버튼{min-width:82px;padding:7px;font-size:11px;} .description-help{font-size:9px;line-height:1.35;} .input-chips{gap:4px;} .input-chip{font-size:9px;padding:4px 6px;} #blocking-summary{display:none;}}
+
+.export-status{font-size:10px;color:#a9dac6;max-width:180px;} .앱[aria-busy="true"] button:disabled{cursor:wait;opacity:.55;}
